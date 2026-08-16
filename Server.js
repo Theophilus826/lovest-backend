@@ -94,7 +94,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Handle browser preflight requests
-app.options("*", cors(corsOptions));
+app.options("/*splat", cors(corsOptions));
 
 // ==========================
 // GENERAL MIDDLEWARE

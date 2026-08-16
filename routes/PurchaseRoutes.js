@@ -9,7 +9,7 @@ const {
   getAllPurchases,
 } = require("../controllers/PurchaseController");
 
-const { protect, admin } = require("../middleware/authMiddleware");
+const { protect, admin } = require("../middleware/AuthMiddleware");
 
 const router = express.Router();
 

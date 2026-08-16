@@ -48,7 +48,8 @@ const startServer = async () => {
     // ==========================
     // CORS
     // ==========================
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl =
+  process.env.FRONTEND_URL || "https://lovest-pgn9.onrender.com";
 
     app.use(
       cors({

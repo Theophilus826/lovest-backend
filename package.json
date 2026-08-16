@@ -7,9 +7,8 @@
     "node": "20.x"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "server": "nodemon server.js"
+    "start": "node Server.js",
+    "server": "nodemon Server.js"
   },
   "author": "Telecom service",
   "license": "ISC",

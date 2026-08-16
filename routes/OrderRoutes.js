@@ -23,7 +23,7 @@ const {
 const {
   protect,
   admin,
-} = require("../middleware/authMiddleware");
+} = require("../middleware/AuthMiddleware");
 
 // =========================================================
 // CUSTOMER ORDERS

@@ -122,6 +122,10 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   let { identifier, password } = req.body;
 
+  console.log("========== LOGIN ==========");
+  console.log("Identifier:", identifier);
+  console.log("Password supplied:", !!password);
+
   if (!identifier || !password) {
     res.status(400);
     throw new Error("Identifier and password required");
@@ -130,53 +134,52 @@ const loginUser = asyncHandler(async (req, res) => {
   identifier = identifier.trim();
 
   const formattedPhone = formatPhone(identifier);
+  const email = identifier.includes("@")
+    ? identifier.toLowerCase()
+    : null;
 
-  const email = identifier.includes("@") ? identifier.toLowerCase() : null;
+  console.log("Email lookup:", email);
+  console.log("Phone lookup:", formattedPhone);
 
   const user = await User.findOne({
     $or: [
       ...(email ? [{ email }] : []),
-      ...(formattedPhone ? [{ phone: formattedPhone }] : []),
+      ...(formattedPhone
+        ? [{ phone: formattedPhone }]
+        : []),
     ],
   });
 
+  console.log("USER FOUND:", !!user);
+
   if (!user) {
+    console.log("❌ USER NOT FOUND");
     res.status(401);
     throw new Error("Invalid credentials");
   }
 
-  const matched = await bcrypt.compare(password, user.password);
+  console.log("User ID:", user._id);
+  console.log("User email:", user.email);
+  console.log("User phone:", user.phone);
+  console.log("Has password hash:", !!user.password);
+
+  const matched = await bcrypt.compare(
+    password,
+    user.password
+  );
+
+  console.log("PASSWORD MATCH:", matched);
 
   if (!matched) {
+    console.log("❌ PASSWORD DOES NOT MATCH");
     res.status(401);
     throw new Error("Invalid credentials");
   }
 
-  user.online = true;
-  user.lastActive = Date.now();
+  console.log("✅ LOGIN SUCCESS");
 
-  await user.save();
-
-  const token = generateToken(user._id);
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
-  res.json({
-    _id: user._id,
-    name: user.name,
-    email: user.email || null,
-    phone: user.phone || null,
-    avatar: user.avatar || null,
-    isAdmin: user.isAdmin,
-    token,
-  });
+  // ...rest of your code
 });
-
 /* ================= LOGOUT ================= */
 const logoutUser = asyncHandler(async (req, res) => {
   res.cookie("token", "", {

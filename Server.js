@@ -52,7 +52,7 @@ const startServer = async () => {
     const allowedOrigins = [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://lovest-pgn9.onrender.com",
+      "https://lovest-mmwz.onrender.com",
     ];
 
     // Add FRONTEND_URL from Render environment

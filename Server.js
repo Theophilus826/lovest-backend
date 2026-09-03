@@ -35,23 +35,11 @@ const discountPublicRoutes = require("./routes/DiscountPublicRoutes");
 // ==========================
 const app = express();
 
-const validateEnvironment = () => {
-  const jwtSecret = process.env.JWT_SECRET?.trim();
-
-  if (!jwtSecret || jwtSecret === "your_jwt_secret") {
-    throw new Error(
-      "JWT_SECRET is missing or still uses the placeholder value. Set a strong JWT_SECRET in the server environment."
-    );
-  }
-};
-
 // ==========================
 // START SERVER
 // ==========================
 const startServer = async () => {
   try {
-    validateEnvironment();
-
     // ==========================
     // CONNECT TO DATABASE
     // ==========================
@@ -69,77 +57,64 @@ const startServer = async () => {
 
     // Add FRONTEND_URL from Render environment
     // if it exists and isn't already in the list.
-    if (
-      process.env.FRONTEND_URL &&
-      !allowedOrigins.includes(process.env.FRONTEND_URL)
-    ) {
-      allowedOrigins.push(
-        process.env.FRONTEND_URL.replace(/\/$/, "")
-      );
-    }
+    const corsOptions = {
+      origin: function (origin, callback) {
+        if (
+          !origin ||
+          allowedOrigins.includes(origin) ||
+          origin?.includes("onrender.com")
+        ) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Origin",
+        "Accept",
+      ],
+      optionsSuccessStatus: 200,
+    };
 
-    console.log("=================================");
-    console.log("🌐 Allowed CORS origins:");
-
-    allowedOrigins.forEach((origin) => {
-      console.log(`   ✅ ${origin}`);
-    });
-
-    console.log("=================================");
-
-    app.use(
-      cors({
-        origin: (origin, callback) => {
-          // Requests without Origin
-          // e.g. Postman/server-to-server
-          if (!origin) {
-            return callback(null, true);
-          }
-
-          const cleanOrigin = origin.replace(/\/$/, "");
-
-          if (allowedOrigins.includes(cleanOrigin)) {
-            return callback(null, true);
-          }
-
-          console.log("❌ CORS BLOCKED:", origin);
-
-          return callback(
-            new Error(`CORS blocked origin: ${origin}`)
-          );
-        },
-
-        credentials: true,
-
-        methods: [
-          "GET",
-          "POST",
-          "PUT",
-          "PATCH",
-          "DELETE",
-          "OPTIONS",
-        ],
-
-        allowedHeaders: [
-          "Content-Type",
-          "Authorization",
-        ],
-      })
-    );
-
-    // ==========================
-    // REQUEST DEBUGGING
-    // ==========================
+    app.use(cors(corsOptions));
 
     app.use((req, res, next) => {
-      console.log(
-        `➡️ ${req.method} ${req.originalUrl}`
-      );
+      const origin = req.headers.origin;
 
-      console.log(
-        "🌍 Origin:",
-        req.headers.origin || "none"
-      );
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin?.includes("onrender.com")
+      ) {
+        res.header("Access-Control-Allow-Origin", origin || "*");
+        res.header("Vary", "Origin");
+        res.header("Access-Control-Allow-Credentials", "true");
+        res.header(
+          "Access-Control-Allow-Methods",
+          "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+        );
+        res.header(
+          "Access-Control-Allow-Headers",
+          "Content-Type, Authorization, X-Requested-With, Origin, Accept",
+        );
+      }
+
+      if (req.method === "OPTIONS") {
+        return res.sendStatus(200);
+      }
+
+      const contentLength = req.headers["content-length"];
+
+      if (contentLength && Number(contentLength) > 300 * 1024 * 1024) {
+        return res.status(413).json({
+          message: "File too large. Max 300MB allowed.",
+        });
+      }
 
       next();
     });
@@ -155,7 +130,7 @@ const startServer = async () => {
     app.use(
       express.urlencoded({
         extended: true,
-      })
+      }),
     );
 
     // ==========================
@@ -177,126 +152,75 @@ const startServer = async () => {
     // USER ROUTES
     // ==========================
 
-    app.use(
-      "/api/users",
-      userRoutes
-    );
+    app.use("/api/users", userRoutes);
 
     // ==========================
     // PRODUCT ROUTES
     // ==========================
 
-    app.use(
-      "/api/products",
-      ProductRoutes
-    );
+    app.use("/api/products", ProductRoutes);
 
     // ==========================
     // ADMIN PRODUCT ROUTES
     // ==========================
 
-    app.use(
-      "/api/admin/products",
-      adminProductRoutes
-    );
+    app.use("/api/admin/products", adminProductRoutes);
 
     // ==========================
     // CATEGORY ROUTES
     // ==========================
 
-    app.use(
-      "/api/admin/categories",
-      CategoryRoutes
-    );
+    app.use("/api/admin/categories", CategoryRoutes);
 
-    app.use(
-      "/api/categories",
-      categoryPublicRoutes
-    );
+    app.use("/api/categories", categoryPublicRoutes);
 
     // ==========================
     // ADMIN USER ROUTES
     // ==========================
 
-    app.use(
-      "/api/admin/users",
-      adminUserRoutes
-    );
+    app.use("/api/admin/users", adminUserRoutes);
 
     // ==========================
     // ORDER ROUTES
     // ==========================
 
-    app.use(
-      "/api/orders",
-      OrderRoutes
-    );
+    app.use("/api/orders", OrderRoutes);
 
-    app.use(
-      "/api/admin/orders",
-      AdminOrderRoutes
-    );
+    app.use("/api/admin/orders", AdminOrderRoutes);
 
     // ==========================
     // PURCHASE / RECEIVING ROUTES
     // ==========================
 
-    app.use(
-      "/api/admin/purchase-orders",
-      adminReceivingRoutes
-    );
+    app.use("/api/admin/purchase-orders", adminReceivingRoutes);
 
-    app.use(
-      "/api/discounts",
-      discountPublicRoutes
-    );
+    app.use("/api/discounts", discountPublicRoutes);
 
-    app.use(
-      "/api/admin/discounts",
-      discountRoutes
-    );
+    app.use("/api/admin/discounts", discountRoutes);
 
-    app.use(
-      "/api/purchase",
-      PurchaseRoutes
-    );
+    app.use("/api/purchase", PurchaseRoutes);
 
-    app.use(
-      "/api/purchases",
-      PurchaseRoutes
-    );
+    app.use("/api/purchases", PurchaseRoutes);
 
     // ==========================
     // NOTIFICATION ROUTES
     // ==========================
 
-    app.use(
-      "/api/notifications",
-      NotificationRoutes
-    );
+    app.use("/api/notifications", NotificationRoutes);
 
     // ==========================
     // PAYMENT ROUTES
     // ==========================
 
-    app.use(
-      "/api/payments",
-      PaymentRoutes
-    );
+    app.use("/api/payments", PaymentRoutes);
 
     // ==========================
     // BANNER ROUTES
     // ==========================
 
-    app.use(
-      "/api/admin/banners",
-      bannerRoutes
-    );
+    app.use("/api/admin/banners", bannerRoutes);
 
-    app.use(
-      "/api/banners",
-      publicBannerRoutes
-    );
+    app.use("/api/banners", publicBannerRoutes);
 
     // ==========================
     // ERROR HANDLER
@@ -316,11 +240,8 @@ const startServer = async () => {
       console.log(`📡 Port: ${PORT}`);
       console.log("=================================");
     });
-
   } catch (error) {
-    console.error(
-      "❌ Failed to start server"
-    );
+    console.error("❌ Failed to start server");
 
     console.error(error);
 

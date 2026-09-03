@@ -183,6 +183,34 @@ const OrderSchema = new mongoose.Schema(
       default: "cash_on_delivery",
     },
 
+    // Paystack / payment provider reference
+    paymentReference: {
+      type: String,
+      trim: true,
+      default: "",
+      index: true,
+    },
+
+    // Payment provider
+    paymentProvider: {
+      type: String,
+      enum: ["", "paystack", "bank_transfer", "cash_on_delivery"],
+      default: "",
+    },
+
+    // Amount actually paid
+    paidAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // Date payment was confirmed
+    paidAt: {
+      type: Date,
+      default: null,
+    },
+
     // ==========================================
     // SHIPPING
     //

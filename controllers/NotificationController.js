@@ -1,6 +1,5 @@
 
 const mongoose = require("mongoose");
-const jwt = require("jsonwebtoken");
 
 const Notification = require("../model/Notification");
 const User = require("../model/UserModel");
@@ -317,34 +316,15 @@ const streamNotifications = async (
   res,
 ) => {
   try {
-    const token = req.query.token;
-
-    if (!token) {
+    if (!req.user?._id) {
       return res.status(401).json({
         success: false,
-        message: "No token provided",
-      });
-    }
-
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET,
-    );
-
-    const user =
-      await User.findById(
-        decoded.id,
-      ).select("_id");
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not found",
+        message: "Not authorized",
       });
     }
 
     const userId =
-      user._id.toString();
+      req.user._id.toString();
 
     // ==========================================
     // SSE HEADERS

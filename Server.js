@@ -35,11 +35,23 @@ const discountPublicRoutes = require("./routes/DiscountPublicRoutes");
 // ==========================
 const app = express();
 
+const validateEnvironment = () => {
+  const jwtSecret = process.env.JWT_SECRET?.trim();
+
+  if (!jwtSecret || jwtSecret === "your_jwt_secret") {
+    throw new Error(
+      "JWT_SECRET is missing or still uses the placeholder value. Set a strong JWT_SECRET in the server environment."
+    );
+  }
+};
+
 // ==========================
 // START SERVER
 // ==========================
 const startServer = async () => {
   try {
+    validateEnvironment();
+
     // ==========================
     // CONNECT TO DATABASE
     // ==========================

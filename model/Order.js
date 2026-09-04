@@ -210,6 +210,10 @@ const OrderSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    adminNotified: {
+      type: Boolean,
+      default: false,
+    },
 
     // ==========================================
     // SHIPPING

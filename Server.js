@@ -29,6 +29,7 @@ const PurchaseRoutes = require("./routes/PurchaseRoutes");
 const adminReceivingRoutes = require("./routes/AdminReceivingRoutes");
 const discountRoutes = require("./routes/DiscountRoutes");
 const discountPublicRoutes = require("./routes/DiscountPublicRoutes");
+const MandateRoutes = require("./routes/MandateRoutes");
 
 // ==========================
 // CREATE EXPRESS APP
@@ -153,6 +154,7 @@ const startServer = async () => {
     // ==========================
 
     app.use("/api/users", userRoutes);
+    app.use("/api/mandates", MandateRoutes);
 
     // ==========================
     // PRODUCT ROUTES

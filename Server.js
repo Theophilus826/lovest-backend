@@ -1,3 +1,4 @@
+
 // ==========================
 // LOAD ENVIRONMENT VARIABLES
 // ==========================
@@ -34,13 +35,52 @@ const discountRoutes = require("./routes/DiscountRoutes");
 const discountPublicRoutes = require("./routes/DiscountPublicRoutes");
 const MandateRoutes = require("./routes/MandateRoutes");
 
-// Paystack webhook controller
+// ==========================
+// CONTROLLERS
+// ==========================
 const { paystackWebhook } = require("./controllers/PaymentController");
 
 // ==========================
 // CREATE EXPRESS APP
 // ==========================
 const app = express();
+
+// ==========================
+// CORS CONFIGURATION
+// ==========================
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://lovest-mmwz.onrender.com",
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      origin.includes("onrender.com")
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+
+  credentials: true,
+
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Origin",
+    "Accept",
+  ],
+
+  optionsSuccessStatus: 200,
+};
 
 // ==========================
 // START SERVER
@@ -53,87 +93,17 @@ const startServer = async () => {
     await connectDB();
 
     // ==========================
-    // CORS
+    // MIDDLEWARE
     // ==========================
-
-    const allowedOrigins = [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "https://lovest-mmwz.onrender.com",
-    ];
-
-    const corsOptions = {
-      origin: function (origin, callback) {
-        if (
-          !origin ||
-          allowedOrigins.includes(origin) ||
-          origin?.includes("onrender.com")
-        ) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
-
-      credentials: true,
-
-      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "Origin",
-        "Accept",
-      ],
-
-      optionsSuccessStatus: 200,
-    };
 
     app.use(cors(corsOptions));
 
-    // ==========================
-    // ADDITIONAL CORS / REQUEST
-    // HANDLING
-    // ==========================
+    app.use(cookieParser());
 
+    // ==========================
+    // REQUEST SIZE LIMIT
+    // ==========================
     app.use((req, res, next) => {
-      const origin = req.headers.origin;
-
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        origin?.includes("onrender.com")
-      ) {
-        res.header("Access-Control-Allow-Origin", origin || "*");
-
-        res.header("Vary", "Origin");
-
-        res.header("Access-Control-Allow-Credentials", "true");
-
-        res.header(
-          "Access-Control-Allow-Methods",
-          "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-        );
-
-        res.header(
-          "Access-Control-Allow-Headers",
-          "Content-Type, Authorization, X-Requested-With, Origin, Accept",
-        );
-      }
-
-      // ==========================
-      // OPTIONS REQUEST
-      // ==========================
-
-      if (req.method === "OPTIONS") {
-        return res.sendStatus(200);
-      }
-
-      // ==========================
-      // FILE SIZE LIMIT
-      // ==========================
-
       const contentLength = req.headers["content-length"];
 
       if (contentLength && Number(contentLength) > 300 * 1024 * 1024) {
@@ -147,27 +117,11 @@ const startServer = async () => {
     });
 
     // ==========================
-    // COOKIE PARSER
-    // ==========================
-
-    app.use(cookieParser());
-
-    // =====================================================
     // PAYSTACK WEBHOOK
-    // =====================================================
-    //
-    // IMPORTANT:
-    //
-    // This MUST come BEFORE express.json().
-    //
-    // Paystack signature verification requires the
-    // original raw request body.
-    //
-    // Endpoint:
-    //
-    // POST /api/payments/paystack/webhook
-    //
-    // =====================================================
+    // ==========================
+    // Must come BEFORE express.json()
+    // because Paystack signature verification
+    // requires the original raw request body.
 
     app.post(
       "/api/payments/paystack/webhook",
@@ -177,19 +131,10 @@ const startServer = async () => {
       paystackWebhook,
     );
 
-    // =====================================================
-    // NORMAL BODY PARSERS
-    // =====================================================
-
+    // ==========================
+    // BODY PARSERS
+    // ==========================
     app.use(express.json());
-
-    app.post(
-      "/api/payments/paystack/webhook",
-      express.raw({
-        type: "application/json",
-      }),
-      paystackWebhook,
-    );
 
     app.use(
       express.urlencoded({
@@ -200,7 +145,6 @@ const startServer = async () => {
     // ==========================
     // HEALTH CHECK
     // ==========================
-
     app.get("/", (req, res) => {
       res.status(200).send("Server is running...");
     });
@@ -215,105 +159,82 @@ const startServer = async () => {
     // ==========================
     // USER ROUTES
     // ==========================
-
     app.use("/api/users", userRoutes);
-
     app.use("/api/mandates", MandateRoutes);
 
     // ==========================
     // PRODUCT ROUTES
     // ==========================
-
     app.use("/api/products", ProductRoutes);
-
-    // ==========================
-    // ADMIN PRODUCT ROUTES
-    // ==========================
-
     app.use("/api/admin/products", adminProductRoutes);
 
     // ==========================
     // CATEGORY ROUTES
     // ==========================
-
     app.use("/api/admin/categories", CategoryRoutes);
-
     app.use("/api/categories", categoryPublicRoutes);
 
     // ==========================
     // ADMIN USER ROUTES
     // ==========================
-
     app.use("/api/admin/users", adminUserRoutes);
 
     // ==========================
     // ORDER ROUTES
     // ==========================
-
     app.use("/api/orders", OrderRoutes);
-
     app.use("/api/admin/orders", AdminOrderRoutes);
 
     // ==========================
-    // PURCHASE / RECEIVING
+    // PURCHASE ROUTES
     // ==========================
-
     app.use("/api/admin/purchase-orders", adminReceivingRoutes);
-
-    app.use("/api/discounts", discountPublicRoutes);
-
-    app.use("/api/admin/discounts", discountRoutes);
-
     app.use("/api/purchase", PurchaseRoutes);
-
     app.use("/api/purchases", PurchaseRoutes);
+
+    // ==========================
+    // DISCOUNT ROUTES
+    // ==========================
+    app.use("/api/discounts", discountPublicRoutes);
+    app.use("/api/admin/discounts", discountRoutes);
 
     // ==========================
     // NOTIFICATION ROUTES
     // ==========================
-
     app.use("/api/notifications", NotificationRoutes);
 
+    // ==========================
+    // PAYMENT ROUTES
+    // ==========================
     app.use("/api/payments", PaymentRoutes);
 
     // ==========================
     // BANNER ROUTES
     // ==========================
-
     app.use("/api/admin/banners", bannerRoutes);
-
     app.use("/api/banners", publicBannerRoutes);
 
     // ==========================
     // ERROR HANDLER
     // ==========================
-
     app.use(errorHandler);
 
     // ==========================
     // START LISTENING
     // ==========================
-
     const PORT = process.env.PORT || 5000;
 
     app.listen(PORT, () => {
       console.log("=================================");
-
       console.log("🚀 Server started successfully");
-
       console.log(`📡 Port: ${PORT}`);
-
       console.log("💳 Paystack webhook:");
-
       console.log("   POST /api/payments/paystack/webhook");
-
       console.log("=================================");
     });
   } catch (error) {
     console.error("❌ Failed to start server");
-
     console.error(error);
-
     process.exit(1);
   }
 };
@@ -321,5 +242,4 @@ const startServer = async () => {
 // ==========================
 // RUN SERVER
 // ==========================
-
 startServer();

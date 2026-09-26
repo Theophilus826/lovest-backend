@@ -13,6 +13,9 @@ const cors = require("cors");
 const connectDB = require("./config/Db");
 const { errorHandler } = require("./middleware/ErrorMiddleware");
 
+// ==========================
+// ROUTES
+// ==========================
 const ProductRoutes = require("./routes/ProductRoutes");
 const userRoutes = require("./routes/UserRoute");
 const adminProductRoutes = require("./routes/AdminProductRoutes");
@@ -30,6 +33,9 @@ const adminReceivingRoutes = require("./routes/AdminReceivingRoutes");
 const discountRoutes = require("./routes/DiscountRoutes");
 const discountPublicRoutes = require("./routes/DiscountPublicRoutes");
 const MandateRoutes = require("./routes/MandateRoutes");
+
+// Paystack webhook controller
+const { paystackWebhook } = require("./controllers/PaymentController");
 
 // ==========================
 // CREATE EXPRESS APP
@@ -56,8 +62,6 @@ const startServer = async () => {
       "https://lovest-mmwz.onrender.com",
     ];
 
-    // Add FRONTEND_URL from Render environment
-    // if it exists and isn't already in the list.
     const corsOptions = {
       origin: function (origin, callback) {
         if (
@@ -70,8 +74,11 @@ const startServer = async () => {
           callback(new Error("Not allowed by CORS"));
         }
       },
+
       credentials: true,
+
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+
       allowedHeaders: [
         "Content-Type",
         "Authorization",
@@ -79,10 +86,16 @@ const startServer = async () => {
         "Origin",
         "Accept",
       ],
+
       optionsSuccessStatus: 200,
     };
 
     app.use(cors(corsOptions));
+
+    // ==========================
+    // ADDITIONAL CORS / REQUEST
+    // HANDLING
+    // ==========================
 
     app.use((req, res, next) => {
       const origin = req.headers.origin;
@@ -93,26 +106,39 @@ const startServer = async () => {
         origin?.includes("onrender.com")
       ) {
         res.header("Access-Control-Allow-Origin", origin || "*");
+
         res.header("Vary", "Origin");
+
         res.header("Access-Control-Allow-Credentials", "true");
+
         res.header(
           "Access-Control-Allow-Methods",
           "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
         );
+
         res.header(
           "Access-Control-Allow-Headers",
           "Content-Type, Authorization, X-Requested-With, Origin, Accept",
         );
       }
 
+      // ==========================
+      // OPTIONS REQUEST
+      // ==========================
+
       if (req.method === "OPTIONS") {
         return res.sendStatus(200);
       }
+
+      // ==========================
+      // FILE SIZE LIMIT
+      // ==========================
 
       const contentLength = req.headers["content-length"];
 
       if (contentLength && Number(contentLength) > 300 * 1024 * 1024) {
         return res.status(413).json({
+          success: false,
           message: "File too large. Max 300MB allowed.",
         });
       }
@@ -121,12 +147,49 @@ const startServer = async () => {
     });
 
     // ==========================
-    // MIDDLEWARE
+    // COOKIE PARSER
     // ==========================
 
     app.use(cookieParser());
 
+    // =====================================================
+    // PAYSTACK WEBHOOK
+    // =====================================================
+    //
+    // IMPORTANT:
+    //
+    // This MUST come BEFORE express.json().
+    //
+    // Paystack signature verification requires the
+    // original raw request body.
+    //
+    // Endpoint:
+    //
+    // POST /api/payments/paystack/webhook
+    //
+    // =====================================================
+
+    app.post(
+      "/api/payments/paystack/webhook",
+      express.raw({
+        type: "application/json",
+      }),
+      paystackWebhook,
+    );
+
+    // =====================================================
+    // NORMAL BODY PARSERS
+    // =====================================================
+
     app.use(express.json());
+
+    app.post(
+      "/api/payments/paystack/webhook",
+      express.raw({
+        type: "application/json",
+      }),
+      paystackWebhook,
+    );
 
     app.use(
       express.urlencoded({
@@ -154,6 +217,7 @@ const startServer = async () => {
     // ==========================
 
     app.use("/api/users", userRoutes);
+
     app.use("/api/mandates", MandateRoutes);
 
     // ==========================
@@ -191,7 +255,7 @@ const startServer = async () => {
     app.use("/api/admin/orders", AdminOrderRoutes);
 
     // ==========================
-    // PURCHASE / RECEIVING ROUTES
+    // PURCHASE / RECEIVING
     // ==========================
 
     app.use("/api/admin/purchase-orders", adminReceivingRoutes);
@@ -209,10 +273,6 @@ const startServer = async () => {
     // ==========================
 
     app.use("/api/notifications", NotificationRoutes);
-
-    // ==========================
-    // PAYMENT ROUTES
-    // ==========================
 
     app.use("/api/payments", PaymentRoutes);
 
@@ -238,8 +298,15 @@ const startServer = async () => {
 
     app.listen(PORT, () => {
       console.log("=================================");
+
       console.log("🚀 Server started successfully");
+
       console.log(`📡 Port: ${PORT}`);
+
+      console.log("💳 Paystack webhook:");
+
+      console.log("   POST /api/payments/paystack/webhook");
+
       console.log("=================================");
     });
   } catch (error) {

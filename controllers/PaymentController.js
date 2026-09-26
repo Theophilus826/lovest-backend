@@ -622,6 +622,10 @@ const forwardLoanTransferWebhook = async (event) => {
 // ==========================================
 
 const paystackWebhook = async (req, res) => {
+  console.log("🔥🔥🔥 PAYSTACK WEBHOOK CONTROLLER HIT 🔥🔥🔥");
+  console.log("METHOD:", req.method);
+  console.log("URL:", req.originalUrl);
+  console.log("BODY IS BUFFER:", Buffer.isBuffer(req.body));
   try {
     // ==========================================
     // CHECK PAYSTACK SECRET KEY

@@ -1,3 +1,4 @@
+
 const Payment = require("../model/PaymentSettings");
 const Order = require("../model/Order");
 const User = require("../model/UserModel");
@@ -12,7 +13,6 @@ const crypto = require("crypto");
 
 const sendAdminPaymentNotificationOnce = async (order) => {
   try {
-
     if (order.adminNotified) {
       console.log(
         "ℹ️ ADMIN ALREADY NOTIFIED FOR THIS ORDER",
@@ -32,14 +32,14 @@ const sendAdminPaymentNotificationOnce = async (order) => {
     );
 
   } catch (error) {
-
     console.error(
       "❌ FAILED TO SEND ADMIN NOTIFICATION:",
       error.message,
     );
-
   }
 };
+
+
 // ==========================================
 // GET PAYMENT SETTINGS
 // ==========================================
@@ -62,7 +62,8 @@ const getPaymentSettings = async (req, res) => {
 
         paystackEnabled: true,
 
-        paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || "",
+        paystackPublicKey:
+          process.env.PAYSTACK_PUBLIC_KEY || "",
 
         paymentLinkEnabled: false,
 
@@ -80,7 +81,8 @@ const getPaymentSettings = async (req, res) => {
       data: {
         _id: payment._id,
 
-        bankTransferEnabled: payment.bankTransferEnabled,
+        bankTransferEnabled:
+          payment.bankTransferEnabled,
 
         bankName: payment.bankName,
 
@@ -88,18 +90,26 @@ const getPaymentSettings = async (req, res) => {
 
         accountNumber: payment.accountNumber,
 
-        paystackEnabled: payment.paystackEnabled,
+        paystackEnabled:
+          payment.paystackEnabled,
 
         paystackPublicKey:
-          process.env.PAYSTACK_PUBLIC_KEY || payment.paystackPublicKey,
+          process.env.PAYSTACK_PUBLIC_KEY ||
+          payment.paystackPublicKey,
 
-        paymentLinkEnabled: payment.paymentLinkEnabled,
+        paymentLinkEnabled:
+          payment.paymentLinkEnabled,
 
-        paymentLink: payment.paymentLink,
+        paymentLink:
+          payment.paymentLink,
       },
     });
+
   } catch (error) {
-    console.error("GET PAYMENT SETTINGS ERROR:", error);
+    console.error(
+      "GET PAYMENT SETTINGS ERROR:",
+      error,
+    );
 
     return res.status(500).json({
       success: false,
@@ -107,6 +117,7 @@ const getPaymentSettings = async (req, res) => {
     });
   }
 };
+
 
 // ==========================================
 // UPDATE PAYMENT SETTINGS
@@ -139,19 +150,23 @@ const updatePaymentSettings = async (req, res) => {
     // ==========================================
 
     if (bankTransferEnabled !== undefined) {
-      payment.bankTransferEnabled = bankTransferEnabled;
+      payment.bankTransferEnabled =
+        bankTransferEnabled;
     }
 
     if (bankName !== undefined) {
-      payment.bankName = bankName?.trim() || "";
+      payment.bankName =
+        bankName?.trim() || "";
     }
 
     if (accountName !== undefined) {
-      payment.accountName = accountName?.trim() || "";
+      payment.accountName =
+        accountName?.trim() || "";
     }
 
     if (accountNumber !== undefined) {
-      payment.accountNumber = accountNumber?.trim() || "";
+      payment.accountNumber =
+        accountNumber?.trim() || "";
     }
 
     // ==========================================
@@ -159,21 +174,25 @@ const updatePaymentSettings = async (req, res) => {
     // ==========================================
 
     if (paystackEnabled !== undefined) {
-      payment.paystackEnabled = paystackEnabled;
+      payment.paystackEnabled =
+        paystackEnabled;
     }
 
-    payment.paystackPublicKey = process.env.PAYSTACK_PUBLIC_KEY || "";
+    payment.paystackPublicKey =
+      process.env.PAYSTACK_PUBLIC_KEY || "";
 
     // ==========================================
     // PAYMENT LINK
     // ==========================================
 
     if (paymentLinkEnabled !== undefined) {
-      payment.paymentLinkEnabled = paymentLinkEnabled;
+      payment.paymentLinkEnabled =
+        paymentLinkEnabled;
     }
 
     if (paymentLink !== undefined) {
-      payment.paymentLink = paymentLink?.trim() || "";
+      payment.paymentLink =
+        paymentLink?.trim() || "";
     }
 
     // ==========================================
@@ -181,24 +200,28 @@ const updatePaymentSettings = async (req, res) => {
     // ==========================================
 
     if (payment.bankTransferEnabled) {
+
       if (!payment.bankName) {
         return res.status(400).json({
           success: false,
-          message: "Bank name is required when bank transfer is enabled",
+          message:
+            "Bank name is required when bank transfer is enabled",
         });
       }
 
       if (!payment.accountName) {
         return res.status(400).json({
           success: false,
-          message: "Account name is required when bank transfer is enabled",
+          message:
+            "Account name is required when bank transfer is enabled",
         });
       }
 
       if (!payment.accountNumber) {
         return res.status(400).json({
           success: false,
-          message: "Account number is required when bank transfer is enabled",
+          message:
+            "Account number is required when bank transfer is enabled",
         });
       }
     }
@@ -207,10 +230,14 @@ const updatePaymentSettings = async (req, res) => {
     // VALIDATE PAYMENT LINK
     // ==========================================
 
-    if (payment.paymentLinkEnabled && !payment.paymentLink) {
+    if (
+      payment.paymentLinkEnabled &&
+      !payment.paymentLink
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Payment link is required when payment link is enabled",
+        message:
+          "Payment link is required when payment link is enabled",
       });
     }
 
@@ -219,25 +246,35 @@ const updatePaymentSettings = async (req, res) => {
     return res.status(200).json({
       success: true,
 
-      message: "Payment settings saved successfully",
+      message:
+        "Payment settings saved successfully",
 
       data: payment,
     });
+
   } catch (error) {
-    console.error("UPDATE PAYMENT SETTINGS ERROR:", error);
+    console.error(
+      "UPDATE PAYMENT SETTINGS ERROR:",
+      error,
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to save payment settings",
+      message:
+        "Failed to save payment settings",
     });
   }
 };
+
 
 // ==========================================
 // INITIALIZE PAYSTACK PAYMENT
 // ==========================================
 
-const initializePaystackPayment = async (req, res) => {
+const initializePaystackPayment = async (
+  req,
+  res,
+) => {
   try {
     const { orderId } = req.body;
 
@@ -256,7 +293,8 @@ const initializePaystackPayment = async (req, res) => {
     // FIND ORDER
     // ==========================================
 
-    const order = await Order.findById(orderId);
+    const order =
+      await Order.findById(orderId);
 
     if (!order) {
       return res.status(404).json({
@@ -269,11 +307,15 @@ const initializePaystackPayment = async (req, res) => {
     // SECURITY: CHECK ORDER OWNER
     // ==========================================
 
-    // Use this if your auth middleware sets req.user
-    if (req.user && order.user.toString() !== req.user._id.toString()) {
+    if (
+      req.user &&
+      order.user.toString() !==
+        req.user._id.toString()
+    ) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to pay for this order",
+        message:
+          "You are not authorized to pay for this order",
       });
     }
 
@@ -281,10 +323,13 @@ const initializePaystackPayment = async (req, res) => {
     // CHECK IF ALREADY PAID
     // ==========================================
 
-    if (order.paymentStatus === "paid") {
+    if (
+      order.paymentStatus === "paid"
+    ) {
       return res.status(400).json({
         success: false,
-        message: "This order has already been paid",
+        message:
+          "This order has already been paid",
       });
     }
 
@@ -295,7 +340,8 @@ const initializePaystackPayment = async (req, res) => {
     if (!order.customer.email) {
       return res.status(400).json({
         success: false,
-        message: "A customer email is required for online payment",
+        message:
+          "A customer email is required for online payment",
       });
     }
 
@@ -303,12 +349,17 @@ const initializePaystackPayment = async (req, res) => {
     // CHECK PAYMENT SETTINGS
     // ==========================================
 
-    const settings = await Payment.findOne();
+    const settings =
+      await Payment.findOne();
 
-    if (!settings || !settings.paystackEnabled) {
+    if (
+      !settings ||
+      !settings.paystackEnabled
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Online payment is currently unavailable",
+        message:
+          "Online payment is currently unavailable",
       });
     }
 
@@ -316,12 +367,17 @@ const initializePaystackPayment = async (req, res) => {
     // CHECK PAYSTACK CONFIGURATION
     // ==========================================
 
-    if (!process.env.PAYSTACK_SECRET_KEY) {
-      console.error("❌ PAYSTACK_SECRET_KEY IS MISSING");
+    if (
+      !process.env.PAYSTACK_SECRET_KEY
+    ) {
+      console.error(
+        "❌ PAYSTACK_SECRET_KEY IS MISSING",
+      );
 
       return res.status(500).json({
         success: false,
-        message: "Payment service is not configured",
+        message:
+          "Payment service is not configured",
       });
     }
 
@@ -329,15 +385,20 @@ const initializePaystackPayment = async (req, res) => {
     // CREATE UNIQUE REFERENCE
     // ==========================================
 
-    const reference = `ORD_${order._id}_${Date.now()}`;
+    const reference =
+      `ORD_${order._id}_${Date.now()}`;
 
     // ==========================================
     // SAVE PAYMENT INFORMATION
     // ==========================================
 
     order.paymentMethod = "online";
-    order.paymentProvider = "paystack";
-    order.paymentReference = reference;
+
+    order.paymentProvider =
+      "paystack";
+
+    order.paymentReference =
+      reference;
 
     await order.save();
 
@@ -349,32 +410,40 @@ const initializePaystackPayment = async (req, res) => {
       "https://api.paystack.co/transaction/initialize",
 
       {
-        email: order.customer.email,
+        email:
+          order.customer.email,
 
-        // IMPORTANT:
-        // Convert Naira to Kobo
-        amount: Math.round(Number(order.total) * 100),
+        amount:
+          Math.round(
+            Number(order.total) * 100,
+          ),
 
         reference,
 
         currency: "NGN",
 
-        callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
+        callback_url:
+          `${process.env.FRONTEND_URL}/payment/callback`,
 
         metadata: {
-          orderId: order._id.toString(),
+          orderId:
+            order._id.toString(),
 
-          customerName: order.customer.name,
+          customerName:
+            order.customer.name,
 
-          customerPhone: order.customer.phone,
+          customerPhone:
+            order.customer.phone,
         },
       },
 
       {
         headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          Authorization:
+            `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
 
-          "Content-Type": "application/json",
+          "Content-Type":
+            "application/json",
         },
       },
     );
@@ -386,52 +455,68 @@ const initializePaystackPayment = async (req, res) => {
     return res.status(200).json({
       success: true,
 
-      message: "Payment initialized successfully",
+      message:
+        "Payment initialized successfully",
 
-      authorization_url: response.data.data.authorization_url,
+      authorization_url:
+        response.data.data
+          .authorization_url,
 
-      reference: response.data.data.reference,
+      reference:
+        response.data.data.reference,
     });
+
   } catch (error) {
     console.error(
       "PAYSTACK INITIALIZATION ERROR:",
-      error.response?.data || error.message,
+      error.response?.data ||
+        error.message,
     );
 
     return res.status(500).json({
       success: false,
-      message: "Unable to initialize payment",
+      message:
+        "Unable to initialize payment",
     });
   }
 };
+
 
 // ==========================================
 // VERIFY PAYSTACK PAYMENT
 // ==========================================
 
-const verifyPaystackPayment = async (req, res) => {
+const verifyPaystackPayment = async (
+  req,
+  res,
+) => {
   try {
-    const { reference } = req.params;
+    const { reference } =
+      req.params;
 
     if (!reference) {
       return res.status(400).json({
         success: false,
-        message: "Payment reference is required",
+        message:
+          "Payment reference is required",
       });
     }
 
     // ==========================================
-    // FIND ORDER USING REFERENCE
+    // FIND ORDER
     // ==========================================
 
-    const order = await Order.findOne({
-      paymentReference: reference,
-    });
+    const order =
+      await Order.findOne({
+        paymentReference:
+          reference,
+      });
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order not found for this payment",
+        message:
+          "Order not found for this payment",
       });
     }
 
@@ -439,10 +524,13 @@ const verifyPaystackPayment = async (req, res) => {
     // CHECK IF ALREADY PAID
     // ==========================================
 
-    if (order.paymentStatus === "paid") {
+    if (
+      order.paymentStatus === "paid"
+    ) {
       return res.status(200).json({
         success: true,
-        message: "Payment has already been verified",
+        message:
+          "Payment has already been verified",
         order,
       });
     }
@@ -451,30 +539,37 @@ const verifyPaystackPayment = async (req, res) => {
     // VERIFY WITH PAYSTACK
     // ==========================================
 
-    const response = await axios.get(
-      `https://api.paystack.co/transaction/verify/${reference}`,
+    const response =
+      await axios.get(
+        `https://api.paystack.co/transaction/verify/${reference}`,
 
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          },
         },
-      },
-    );
+      );
 
-    const payment = response.data.data;
+    const payment =
+      response.data.data;
 
     // ==========================================
     // CHECK PAYMENT STATUS
     // ==========================================
 
-    if (payment.status !== "success") {
-      order.paymentStatus = "failed";
+    if (
+      payment.status !== "success"
+    ) {
+      order.paymentStatus =
+        "failed";
 
       await order.save();
 
       return res.status(400).json({
         success: false,
-        message: "Payment was not successful",
+        message:
+          "Payment was not successful",
       });
     }
 
@@ -482,10 +577,14 @@ const verifyPaystackPayment = async (req, res) => {
     // VERIFY REFERENCE
     // ==========================================
 
-    if (payment.reference !== reference) {
+    if (
+      payment.reference !==
+      reference
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid payment reference",
+        message:
+          "Invalid payment reference",
       });
     }
 
@@ -493,18 +592,33 @@ const verifyPaystackPayment = async (req, res) => {
     // VERIFY AMOUNT
     // ==========================================
 
-    const expectedAmount = Math.round(Number(order.total) * 100);
+    const expectedAmount =
+      Math.round(
+        Number(order.total) * 100,
+      );
 
-    if (payment.amount !== expectedAmount) {
-      console.error("❌ PAYMENT AMOUNT MISMATCH");
+    if (
+      payment.amount !==
+      expectedAmount
+    ) {
+      console.error(
+        "❌ PAYMENT AMOUNT MISMATCH",
+      );
 
-      console.error("Expected:", expectedAmount);
+      console.error(
+        "Expected:",
+        expectedAmount,
+      );
 
-      console.error("Received:", payment.amount);
+      console.error(
+        "Received:",
+        payment.amount,
+      );
 
       return res.status(400).json({
         success: false,
-        message: "Payment amount verification failed",
+        message:
+          "Payment amount verification failed",
       });
     }
 
@@ -512,23 +626,33 @@ const verifyPaystackPayment = async (req, res) => {
     // MARK ORDER AS PAID
     // ==========================================
 
-    order.paymentStatus = "paid";
+    order.paymentStatus =
+      "paid";
 
-    order.paymentMethod = "online";
+    order.paymentMethod =
+      "online";
 
-    order.paymentProvider = "paystack";
+    order.paymentProvider =
+      "paystack";
 
-    order.paymentReference = payment.reference;
+    order.paymentReference =
+      payment.reference;
 
-    order.paidAmount = payment.amount / 100;
+    order.paidAmount =
+      payment.amount / 100;
 
-    order.paidAt = new Date();
+    order.paidAt =
+      new Date();
 
-    // Move order forward
-    order.status = "confirmed";
+    order.status =
+      "confirmed";
 
     await order.save();
-    await sendAdminPaymentNotificationOnce(order);
+
+    await sendAdminPaymentNotificationOnce(
+      order,
+    );
+
     // ==========================================
     // SUCCESS
     // ==========================================
@@ -536,104 +660,224 @@ const verifyPaystackPayment = async (req, res) => {
     return res.status(200).json({
       success: true,
 
-      message: "Payment verified successfully",
+      message:
+        "Payment verified successfully",
 
       order: {
         _id: order._id,
 
-        paymentStatus: order.paymentStatus,
+        paymentStatus:
+          order.paymentStatus,
 
-        status: order.status,
+        status:
+          order.status,
 
-        total: order.total,
+        total:
+          order.total,
       },
     });
+
   } catch (error) {
     console.error(
       "PAYSTACK VERIFICATION ERROR:",
-      error.response?.data || error.message,
+      error.response?.data ||
+        error.message,
     );
 
     return res.status(500).json({
       success: false,
-      message: "Unable to verify payment",
+      message:
+        "Unable to verify payment",
     });
   }
 };
+
 
 // ==========================================
 // FORWARD LOAN TRANSFER WEBHOOK
 // PRODUCT → LOAN BACKEND
 // ==========================================
 
-const forwardLoanTransferWebhook = async (event) => {
-  try {
-    const loanWebhookUrl = process.env.LOAN_WEBHOOK_URL;
-    const loanWebhookSecret = process.env.LOAN_WEBHOOK_SECRET;
+const forwardLoanTransferWebhook =
+  async (event) => {
+    try {
+      const loanWebhookUrl =
+        process.env.LOAN_WEBHOOK_URL;
 
-    if (!loanWebhookUrl) {
-      console.error(
-        "❌ LOAN_WEBHOOK_URL IS NOT CONFIGURED"
-      );
+      const loanWebhookSecret =
+        process.env.LOAN_WEBHOOK_SECRET;
 
-      return false;
-    }
+      if (!loanWebhookUrl) {
+        console.error(
+          "❌ LOAN_WEBHOOK_URL IS NOT CONFIGURED",
+        );
 
-    if (!loanWebhookSecret) {
-      console.error(
-        "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED"
-      );
-
-      return false;
-    }
-
-    await axios.post(
-      loanWebhookUrl,
-      event,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "x-loan-webhook-secret": loanWebhookSecret,
-        },
-        timeout: 15000,
+        return false;
       }
-    );
 
-    console.log(
-      "✅ LOAN TRANSFER WEBHOOK FORWARDED:",
-      event.event,
-      event.data?.reference || null
-    );
+      if (!loanWebhookSecret) {
+        console.error(
+          "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
+        );
 
-    return true;
-  } catch (error) {
-    console.error(
-      "❌ FAILED TO FORWARD LOAN TRANSFER WEBHOOK:",
-      error.response?.data || error.message
-    );
+        return false;
+      }
 
-    return false;
-  }
-};
+      await axios.post(
+        loanWebhookUrl,
+        event,
+        {
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "x-loan-webhook-secret":
+              loanWebhookSecret,
+
+            "x-webhook-type":
+              "loan-transfer",
+          },
+
+          timeout: 15000,
+        },
+      );
+
+      console.log(
+        "✅ LOAN TRANSFER WEBHOOK FORWARDED:",
+        event.event,
+        event.data?.reference ||
+          null,
+      );
+
+      return true;
+
+    } catch (error) {
+      console.error(
+        "❌ FAILED TO FORWARD LOAN TRANSFER WEBHOOK:",
+        error.response?.data ||
+          error.message,
+      );
+
+      return false;
+    }
+  };
+
+
+// ==========================================
+// FORWARD KYC VERIFICATION WEBHOOK
+// PRODUCT → LOAN BACKEND
+// ==========================================
+
+const forwardKycVerificationWebhook =
+  async (event) => {
+    try {
+      const loanWebhookUrl =
+        process.env.LOAN_WEBHOOK_URL;
+
+      const loanWebhookSecret =
+        process.env.LOAN_WEBHOOK_SECRET;
+
+      if (!loanWebhookUrl) {
+        console.error(
+          "❌ LOAN_WEBHOOK_URL IS NOT CONFIGURED",
+        );
+
+        return false;
+      }
+
+      if (!loanWebhookSecret) {
+        console.error(
+          "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
+        );
+
+        return false;
+      }
+
+      await axios.post(
+        loanWebhookUrl,
+        event,
+        {
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "x-loan-webhook-secret":
+              loanWebhookSecret,
+
+            // Lets the Loan backend
+            // identify this as a KYC webhook.
+            "x-webhook-type":
+              "kyc",
+          },
+
+          timeout: 15000,
+        },
+      );
+
+      console.log(
+        "✅ KYC VERIFICATION WEBHOOK FORWARDED:",
+        event.event,
+        event.data?.customer_code ||
+          event.data?.customer?.customer_code ||
+          event.data?.reference ||
+          event.data
+            ?.customer_identification_reference ||
+          null,
+      );
+
+      return true;
+
+    } catch (error) {
+      console.error(
+        "❌ FAILED TO FORWARD KYC VERIFICATION WEBHOOK:",
+        error.response?.data ||
+          error.message,
+      );
+
+      return false;
+    }
+  };
 
 
 // ==========================================
 // PAYSTACK WEBHOOK
 // ==========================================
 
-const paystackWebhook = async (req, res) => {
-  console.log("🔥🔥🔥 PAYSTACK WEBHOOK CONTROLLER HIT 🔥🔥🔥");
-  console.log("METHOD:", req.method);
-  console.log("URL:", req.originalUrl);
-  console.log("BODY IS BUFFER:", Buffer.isBuffer(req.body));
+const paystackWebhook = async (
+  req,
+  res,
+) => {
+
+  console.log(
+    "🔥🔥🔥 PAYSTACK WEBHOOK CONTROLLER HIT 🔥🔥🔥",
+  );
+
+  console.log(
+    "METHOD:",
+    req.method,
+  );
+
+  console.log(
+    "URL:",
+    req.originalUrl,
+  );
+
+  console.log(
+    "BODY IS BUFFER:",
+    Buffer.isBuffer(req.body),
+  );
+
   try {
+
     // ==========================================
     // CHECK PAYSTACK SECRET KEY
     // ==========================================
 
-    if (!process.env.PAYSTACK_SECRET_KEY) {
+    if (
+      !process.env.PAYSTACK_SECRET_KEY
+    ) {
       console.error(
-        "❌ PAYSTACK_SECRET_KEY IS MISSING"
+        "❌ PAYSTACK_SECRET_KEY IS MISSING",
       );
 
       return res.sendStatus(500);
@@ -643,9 +887,11 @@ const paystackWebhook = async (req, res) => {
     // CHECK RAW REQUEST BODY
     // ==========================================
 
-    if (!Buffer.isBuffer(req.body)) {
+    if (
+      !Buffer.isBuffer(req.body)
+    ) {
       console.error(
-        "❌ PAYSTACK WEBHOOK BODY IS NOT RAW BUFFER"
+        "❌ PAYSTACK WEBHOOK BODY IS NOT RAW BUFFER",
       );
 
       return res.sendStatus(400);
@@ -656,11 +902,13 @@ const paystackWebhook = async (req, res) => {
     // ==========================================
 
     const signature =
-      req.headers["x-paystack-signature"];
+      req.headers[
+        "x-paystack-signature"
+      ];
 
     if (!signature) {
       console.error(
-        "❌ PAYSTACK WEBHOOK SIGNATURE MISSING"
+        "❌ PAYSTACK WEBHOOK SIGNATURE MISSING",
       );
 
       return res.sendStatus(401);
@@ -668,21 +916,25 @@ const paystackWebhook = async (req, res) => {
 
     // ==========================================
     // VERIFY PAYSTACK SIGNATURE
+    //
     // IMPORTANT:
     // HASH THE EXACT RAW REQUEST BODY
     // ==========================================
 
-    const hash = crypto
-      .createHmac(
-        "sha512",
-        process.env.PAYSTACK_SECRET_KEY
-      )
-      .update(req.body)
-      .digest("hex");
+    const hash =
+      crypto
+        .createHmac(
+          "sha512",
+          process.env.PAYSTACK_SECRET_KEY,
+        )
+        .update(req.body)
+        .digest("hex");
 
-    if (hash !== signature) {
+    if (
+      hash !== signature
+    ) {
       console.error(
-        "❌ INVALID PAYSTACK WEBHOOK SIGNATURE"
+        "❌ INVALID PAYSTACK WEBHOOK SIGNATURE",
       );
 
       return res.sendStatus(401);
@@ -696,12 +948,29 @@ const paystackWebhook = async (req, res) => {
 
     try {
       event = JSON.parse(
-        req.body.toString("utf8")
+        req.body.toString("utf8"),
       );
+
     } catch (parseError) {
+
       console.error(
         "❌ INVALID PAYSTACK WEBHOOK JSON:",
-        parseError.message
+        parseError.message,
+      );
+
+      return res.sendStatus(400);
+    }
+
+    // ==========================================
+    // VALIDATE EVENT
+    // ==========================================
+
+    if (
+      !event ||
+      typeof event !== "object"
+    ) {
+      console.error(
+        "❌ INVALID PAYSTACK WEBHOOK EVENT",
       );
 
       return res.sendStatus(400);
@@ -709,39 +978,35 @@ const paystackWebhook = async (req, res) => {
 
     console.log(
       "📩 PAYSTACK WEBHOOK:",
-      event.event
+      event.event,
     );
 
-    // ==========================================
-    // VALIDATE EVENT DATA
-    // ==========================================
-
-    if (!event || typeof event !== "object") {
-      console.error(
-        "❌ INVALID PAYSTACK WEBHOOK EVENT"
-      );
-
-      return res.sendStatus(400);
-    }
 
     // ==========================================
     // LOAN TRANSFER EVENTS
     //
     // Paystack sends these to the PRODUCT webhook.
-    // Product verifies the Paystack signature above,
-    // then securely forwards the event to the LOAN backend.
+    // Product verifies the Paystack signature,
+    // then securely forwards the event to the
+    // LOAN backend.
     // ==========================================
 
-    const loanTransferEvents = new Set([
-      "transfer.success",
-      "transfer.failed",
-      "transfer.reversed",
-    ]);
+    const loanTransferEvents =
+      new Set([
+        "transfer.success",
+        "transfer.failed",
+        "transfer.reversed",
+      ]);
 
-    if (loanTransferEvents.has(event.event)) {
+    if (
+      loanTransferEvents.has(
+        event.event,
+      )
+    ) {
+
       console.log(
         "🏦 LOAN TRANSFER EVENT RECEIVED:",
-        event.event
+        event.event,
       );
 
       // ------------------------------------------
@@ -750,32 +1015,32 @@ const paystackWebhook = async (req, res) => {
 
       if (!event.data) {
         console.error(
-          "❌ PAYSTACK TRANSFER EVENT DATA MISSING"
+          "❌ PAYSTACK TRANSFER EVENT DATA MISSING",
         );
 
-        // Paystack delivered a validly signed event,
-        // but the payload is unusable.
-        // Acknowledge it to avoid endless retries.
         return res.sendStatus(200);
       }
 
       // ------------------------------------------
-      // LOG IMPORTANT TRANSFER IDENTIFIERS
+      // LOG IMPORTANT IDENTIFIERS
       // ------------------------------------------
 
       console.log(
         "REFERENCE:",
-        event.data.reference || null
+        event.data.reference ||
+          null,
       );
 
       console.log(
         "TRANSFER CODE:",
-        event.data.transfer_code || null
+        event.data.transfer_code ||
+          null,
       );
 
       console.log(
         "TRANSFER ID:",
-        event.data.id || null
+        event.data.id ||
+          null,
       );
 
       // ------------------------------------------
@@ -783,17 +1048,18 @@ const paystackWebhook = async (req, res) => {
       // ------------------------------------------
 
       const forwarded =
-        await forwardLoanTransferWebhook(event);
+        await forwardLoanTransferWebhook(
+          event,
+        );
 
       // ------------------------------------------
-      // IMPORTANT:
-      // If Product → Loan forwarding fails,
-      // return 500 so Paystack can retry the webhook.
+      // IF FORWARDING FAILS
+      // PAYSTACK WILL RETRY
       // ------------------------------------------
 
       if (!forwarded) {
         console.error(
-          "❌ LOAN WEBHOOK FORWARDING FAILED"
+          "❌ LOAN WEBHOOK FORWARDING FAILED",
         );
 
         return res.sendStatus(500);
@@ -802,32 +1068,137 @@ const paystackWebhook = async (req, res) => {
       console.log(
         "✅ LOAN TRANSFER EVENT PROCESSED:",
         event.event,
-        event.data.reference || null
+        event.data.reference ||
+          null,
       );
 
       return res.sendStatus(200);
     }
 
+
+    // ==========================================
+    // CUSTOMER IDENTIFICATION EVENTS
+    //
+    // Paystack sends these to the PRODUCT webhook.
+    // Product verifies the Paystack signature,
+    // then securely forwards the event to the
+    // LOAN backend.
+    // ==========================================
+
+    const customerIdentificationEvents =
+      new Set([
+        "customeridentification.success",
+        "customeridentification.failed",
+      ]);
+
+    if (
+      customerIdentificationEvents.has(
+        event.event,
+      )
+    ) {
+
+      console.log(
+        "🪪 CUSTOMER IDENTIFICATION EVENT RECEIVED:",
+        event.event,
+      );
+
+      // ------------------------------------------
+      // CHECK EVENT DATA
+      // ------------------------------------------
+
+      if (!event.data) {
+        console.error(
+          "❌ PAYSTACK CUSTOMER IDENTIFICATION DATA MISSING",
+        );
+
+        // Valid Paystack webhook but unusable
+        // payload. Acknowledge it so Paystack
+        // does not retry forever.
+        return res.sendStatus(200);
+      }
+
+      // ------------------------------------------
+      // LOG IDENTIFIERS
+      // ------------------------------------------
+
+      console.log(
+        "CUSTOMER CODE:",
+        event.data.customer_code ||
+          event.data.customer?.customer_code ||
+          null,
+      );
+
+      console.log(
+        "REFERENCE:",
+        event.data.reference ||
+          event.data.customer_identification_reference ||
+          null,
+      );
+
+      console.log(
+        "IDENTIFICATION STATUS:",
+        event.data.status ||
+          event.data.verification_status ||
+          null,
+      );
+
+      // ------------------------------------------
+      // FORWARD TO LOAN BACKEND
+      // ------------------------------------------
+
+      const forwarded =
+        await forwardKycVerificationWebhook(
+          event,
+        );
+
+      // ------------------------------------------
+      // IF FORWARDING FAILS
+      // PAYSTACK WILL RETRY
+      // ------------------------------------------
+
+      if (!forwarded) {
+        console.error(
+          "❌ KYC WEBHOOK FORWARDING FAILED",
+        );
+
+        return res.sendStatus(500);
+      }
+
+      console.log(
+        "✅ CUSTOMER IDENTIFICATION EVENT PROCESSED:",
+        event.event,
+      );
+
+      return res.sendStatus(200);
+    }
+
+
     // ==========================================
     // HANDLE SUCCESSFUL PRODUCT PAYMENT
     // ==========================================
 
-    if (event.event === "charge.success") {
-      const payment = event.data;
+    if (
+      event.event ===
+      "charge.success"
+    ) {
+
+      const payment =
+        event.data;
 
       if (!payment) {
         console.error(
-          "❌ PAYSTACK WEBHOOK PAYMENT DATA MISSING"
+          "❌ PAYSTACK WEBHOOK PAYMENT DATA MISSING",
         );
 
         return res.sendStatus(200);
       }
 
-      const reference = payment.reference;
+      const reference =
+        payment.reference;
 
       if (!reference) {
         console.error(
-          "❌ PAYSTACK WEBHOOK REFERENCE MISSING"
+          "❌ PAYSTACK WEBHOOK REFERENCE MISSING",
         );
 
         return res.sendStatus(200);
@@ -837,18 +1208,18 @@ const paystackWebhook = async (req, res) => {
       // FIND ORDER
       // ==========================================
 
-      const order = await Order.findOne({
-        paymentReference: reference,
-      });
+      const order =
+        await Order.findOne({
+          paymentReference:
+            reference,
+        });
 
       if (!order) {
         console.log(
           "⚠️ ORDER NOT FOUND:",
-          reference
+          reference,
         );
 
-        // This may simply be a transaction belonging
-        // to another system, so acknowledge it.
         return res.sendStatus(200);
       }
 
@@ -856,10 +1227,12 @@ const paystackWebhook = async (req, res) => {
       // PREVENT DUPLICATE PROCESSING
       // ==========================================
 
-      if (order.paymentStatus === "paid") {
+      if (
+        order.paymentStatus === "paid"
+      ) {
         console.log(
           "ℹ️ PAYMENT ALREADY PROCESSED:",
-          reference
+          reference,
         );
 
         return res.sendStatus(200);
@@ -873,13 +1246,17 @@ const paystackWebhook = async (req, res) => {
         payment.reference !==
         order.paymentReference
       ) {
+
         console.error(
-          "❌ WEBHOOK PAYMENT REFERENCE MISMATCH"
+          "❌ WEBHOOK PAYMENT REFERENCE MISMATCH",
         );
 
         console.error({
-          expected: order.paymentReference,
-          received: payment.reference,
+          expected:
+            order.paymentReference,
+
+          received:
+            payment.reference,
         });
 
         return res.sendStatus(200);
@@ -889,21 +1266,27 @@ const paystackWebhook = async (req, res) => {
       // VERIFY PAYMENT AMOUNT
       // ==========================================
 
-      const expectedAmount = Math.round(
-        Number(order.total) * 100
-      );
+      const expectedAmount =
+        Math.round(
+          Number(order.total) * 100,
+        );
 
       if (
         Number(payment.amount) !==
         expectedAmount
       ) {
+
         console.error(
-          "❌ WEBHOOK PAYMENT AMOUNT MISMATCH"
+          "❌ WEBHOOK PAYMENT AMOUNT MISMATCH",
         );
 
         console.error({
-          expected: expectedAmount,
-          received: payment.amount,
+          expected:
+            expectedAmount,
+
+          received:
+            payment.amount,
+
           reference,
         });
 
@@ -918,13 +1301,17 @@ const paystackWebhook = async (req, res) => {
         payment.currency &&
         payment.currency !== "NGN"
       ) {
+
         console.error(
-          "❌ WEBHOOK PAYMENT CURRENCY MISMATCH"
+          "❌ WEBHOOK PAYMENT CURRENCY MISMATCH",
         );
 
         console.error({
           expected: "NGN",
-          received: payment.currency,
+
+          received:
+            payment.currency,
+
           reference,
         });
 
@@ -935,11 +1322,14 @@ const paystackWebhook = async (req, res) => {
       // MARK ORDER AS PAID
       // ==========================================
 
-      order.paymentStatus = "paid";
+      order.paymentStatus =
+        "paid";
 
-      order.paymentMethod = "online";
+      order.paymentMethod =
+        "online";
 
-      order.paymentProvider = "paystack";
+      order.paymentProvider =
+        "paystack";
 
       order.paymentReference =
         payment.reference;
@@ -947,9 +1337,11 @@ const paystackWebhook = async (req, res) => {
       order.paidAmount =
         Number(payment.amount) / 100;
 
-      order.paidAt = new Date();
+      order.paidAt =
+        new Date();
 
-      order.status = "confirmed";
+      order.status =
+        "confirmed";
 
       await order.save();
 
@@ -958,13 +1350,14 @@ const paystackWebhook = async (req, res) => {
       // ==========================================
 
       await sendAdminPaymentNotificationOnce(
-        order
+        order,
       );
 
       console.log(
-        `✅ ORDER ${order._id} PAYMENT CONFIRMED`
+        `✅ ORDER ${order._id} PAYMENT CONFIRMED`,
       );
     }
+
 
     // ==========================================
     // OTHER PAYSTACK EVENTS
@@ -973,83 +1366,100 @@ const paystackWebhook = async (req, res) => {
     return res.sendStatus(200);
 
   } catch (error) {
+
     console.error(
       "❌ PAYSTACK WEBHOOK ERROR:",
       error.response?.data ||
-      error.message
+        error.message,
     );
 
     return res.sendStatus(500);
   }
 };
 
+
 // ==========================================
 // NOTIFY ADMINS ABOUT PAID ORDER
 // ==========================================
 
-const notifyAdminsAboutPaidOrder = async (order) => {
-  try {
-    // ==========================================
-    // FIND ADMIN USERS
-    // ==========================================
+const notifyAdminsAboutPaidOrder =
+  async (order) => {
+    try {
 
-    const admins = await User.find({
-      isAdmin: true,
-    }).select("_id");
+      // ==========================================
+      // FIND ADMIN USERS
+      // ==========================================
 
-    if (!admins.length) {
-      console.log(
-        "⚠️ NO ADMIN USERS FOUND FOR PAYMENT NOTIFICATION",
+      const admins =
+        await User.find({
+          isAdmin: true,
+        }).select("_id");
+
+      if (!admins.length) {
+        console.log(
+          "⚠️ NO ADMIN USERS FOUND FOR PAYMENT NOTIFICATION",
+        );
+
+        return;
+      }
+
+      // ==========================================
+      // GET PRODUCT NAMES
+      // ==========================================
+
+      const productNames =
+        order.items
+          .map(
+            (item) => item.name,
+          )
+          .join(", ");
+
+      // ==========================================
+      // CREATE NOTIFICATION
+      // FOR EVERY ADMIN
+      // ==========================================
+
+      await Promise.all(
+        admins.map(
+          (admin) =>
+            notify({
+              user:
+                admin._id,
+
+              sender:
+                order.user,
+
+              type:
+                "order",
+
+              orderId:
+                order._id,
+
+              message:
+                `💰 New paid order received from ${order.customer.name}. ` +
+                `Products: ${productNames}. ` +
+                `Total: ₦${Number(
+                  order.total,
+                ).toLocaleString()}`,
+            }),
+        ),
       );
 
-      return;
+      console.log(
+        `🔔 ADMIN NOTIFICATIONS SENT: ${admins.length}`,
+      );
+
+    } catch (error) {
+
+      // Payment should NOT fail because
+      // notification failed.
+
+      console.error(
+        "❌ ADMIN NOTIFICATION ERROR:",
+        error.message,
+      );
     }
-
-    // ==========================================
-    // GET PRODUCT NAMES
-    // ==========================================
-
-    const productNames = order.items
-      .map((item) => item.name)
-      .join(", ");
-
-    // ==========================================
-    // CREATE NOTIFICATION FOR EVERY ADMIN
-    // ==========================================
-
-    await Promise.all(
-      admins.map((admin) =>
-        notify({
-          user: admin._id,
-
-          sender: order.user,
-
-          type: "order",
-
-          orderId: order._id,
-
-          message:
-            `💰 New paid order received from ${order.customer.name}. ` +
-            `Products: ${productNames}. ` +
-            `Total: ₦${Number(order.total).toLocaleString()}`,
-        }),
-      ),
-    );
-
-    console.log(
-      `🔔 ADMIN NOTIFICATIONS SENT: ${admins.length}`,
-    );
-
-  } catch (error) {
-    // IMPORTANT:
-    // Payment should NOT fail because notification failed
-
-    console.error(
-      "❌ ADMIN NOTIFICATION ERROR:",
-      error.message,
-    );
-  }
-};
+  };
 
 
 // ==========================================
@@ -1058,7 +1468,11 @@ const notifyAdminsAboutPaidOrder = async (order) => {
 
 module.exports = {
   getPaymentSettings,
+
   forwardLoanTransferWebhook,
+
+  forwardKycVerificationWebhook,
+
   updatePaymentSettings,
 
   initializePaystackPayment,
@@ -1066,6 +1480,9 @@ module.exports = {
   verifyPaystackPayment,
 
   paystackWebhook,
+
   notifyAdminsAboutPaidOrder,
+
   sendAdminPaymentNotificationOnce,
 };
+

@@ -701,8 +701,7 @@ const verifyPaystackPayment = async (
 const forwardLoanTransferWebhook =
   async (event) => {
     try {
-      const loanWebhookUrl =
-        process.env.LOAN_WEBHOOK_URL;
+      const loanWebhookUrl = process.env.LOAN_KYC_WEBHOOK_URL;
 
       const loanWebhookSecret =
         process.env.LOAN_WEBHOOK_SECRET;

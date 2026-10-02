@@ -662,108 +662,159 @@ const forwardLoanTransferWebhook =
 // PRODUCT → LOAN BACKEND
 // ==========================================
 
-const forwardLoanDvaWebhook =
-  async (event) => {
-    try {
-      const loanDvaWebhookUrl =
-        process.env.LOAN_DVA_WEBHOOK_URL;
+const forwardLoanDvaWebhook = async (event) => {
+  try {
+    const loanDvaWebhookUrl =
+      process.env.LOAN_DVA_WEBHOOK_URL;
 
-      const loanWebhookSecret =
-        process.env.LOAN_WEBHOOK_SECRET;
+    const loanWebhookSecret =
+      process.env.LOAN_WEBHOOK_SECRET;
+
+    console.log(
+      "=================================",
+    );
+
+    console.log(
+      "🏦 LOAN DVA WEBHOOK FORWARD",
+    );
+
+    console.log(
+      "EVENT:",
+      event?.event,
+    );
+
+    // =====================================================
+    // DEBUG PAYSTACK DVA FAILURE
+    // =====================================================
+
+    if (
+      event?.event ===
+      "dedicatedaccount.assign.failed"
+    ) {
+      console.log(
+        "========== PAYSTACK DVA FAILURE PAYLOAD ==========",
+      );
+
+      console.dir(event, {
+        depth: null,
+      });
 
       console.log(
-        "=================================",
+        "==================================================",
       );
+    }
 
-      console.log(
-        "🏦 LOAN DVA WEBHOOK FORWARD",
-      );
+    console.log(
+      "TARGET URL:",
+      loanDvaWebhookUrl ||
+        "NOT CONFIGURED",
+    );
 
-      console.log(
-        "EVENT:",
-        event?.event,
-      );
+    console.log(
+      "CUSTOMER CODE:",
+      event?.data?.customer_code ||
+        event?.data?.customer?.customer_code ||
+        null,
+    );
 
-      console.log(
-        "TARGET URL:",
-        loanDvaWebhookUrl ||
-          "NOT CONFIGURED",
-      );
+    console.log(
+      "ACCOUNT NUMBER:",
+      event?.data?.account_number ||
+        event?.data?.account?.account_number ||
+        null,
+    );
 
-      console.log(
-        "CUSTOMER CODE:",
-        event?.data?.customer_code ||
-          event?.data?.customer?.customer_code ||
-          null,
-      );
+    console.log(
+      "ACCOUNT ID:",
+      event?.data?.id ||
+        event?.data?.dedicated_account_id ||
+        event?.data?.account_id ||
+        null,
+    );
 
-      console.log(
-        "ACCOUNT NUMBER:",
-        event?.data?.account_number ||
-          event?.data?.account?.account_number ||
-          null,
-      );
+    console.log(
+      "MESSAGE:",
+      event?.data?.message ||
+        event?.message ||
+        null,
+    );
 
-      console.log(
-        "SECRET PRESENT:",
-        !!loanWebhookSecret,
-      );
+    console.log(
+      "REASON:",
+      event?.data?.reason ||
+        event?.data?.failure_reason ||
+        event?.reason ||
+        null,
+    );
 
-      console.log(
-        "=================================",
-      );
+    console.log(
+      "SECRET PRESENT:",
+      !!loanWebhookSecret,
+    );
 
-      if (!loanDvaWebhookUrl) {
-        console.error(
-          "❌ LOAN_DVA_WEBHOOK_URL IS NOT CONFIGURED",
-        );
+    console.log(
+      "=================================",
+    );
 
-        return false;
-      }
+    // =====================================================
+    // VALIDATE CONFIG
+    // =====================================================
 
-      if (!loanWebhookSecret) {
-        console.error(
-          "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
-        );
-
-        return false;
-      }
-
-      await axios.post(
-        loanDvaWebhookUrl,
-        event,
-        {
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            "x-loan-webhook-secret":
-              loanWebhookSecret,
-
-            "x-webhook-type":
-              "loan-dva",
-          },
-
-          timeout: 15000,
-        },
-      );
-
-      console.log(
-        "✅ LOAN DVA WEBHOOK FORWARDED:",
-        event.event,
-      );
-
-      return true;
-    } catch (error) {
+    if (!loanDvaWebhookUrl) {
       console.error(
-        "❌ FAILED TO FORWARD LOAN DVA WEBHOOK:",
-        error.response?.data ||
-          error.message,
+        "❌ LOAN_DVA_WEBHOOK_URL IS NOT CONFIGURED",
       );
 
       return false;
     }
-  };
+
+    if (!loanWebhookSecret) {
+      console.error(
+        "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
+      );
+
+      return false;
+    }
+
+    // =====================================================
+    // FORWARD TO LOAN
+    // =====================================================
+
+    await axios.post(
+      loanDvaWebhookUrl,
+      event,
+      {
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          "x-loan-webhook-secret":
+            loanWebhookSecret,
+
+          "x-webhook-type":
+            "loan-dva",
+        },
+
+        timeout: 15000,
+      },
+    );
+
+    console.log(
+      "✅ LOAN DVA WEBHOOK FORWARDED:",
+      event.event,
+    );
+
+    return true;
+  } catch (error) {
+    console.error(
+      "❌ FAILED TO FORWARD LOAN DVA WEBHOOK:",
+      error.response?.data ||
+        error.message,
+    );
+
+    return false;
+  }
+};
 
 // ==========================================
 // FORWARD KYC VERIFICATION WEBHOOK

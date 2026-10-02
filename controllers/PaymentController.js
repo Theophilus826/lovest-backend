@@ -684,6 +684,43 @@ const forwardLoanDvaWebhook = async (event) => {
     );
 
     // =====================================================
+    // EXTRACT PAYSTACK DVA DATA
+    // =====================================================
+
+    const customerCode =
+      event?.data?.customer_code ||
+      event?.data?.customer?.customer_code ||
+      null;
+
+    const accountNumber =
+      event?.data?.account_number ||
+      event?.data?.account?.account_number ||
+      event?.data?.dedicated_account?.account_number ||
+      null;
+
+    const accountId =
+      event?.data?.id ||
+      event?.data?.dedicated_account_id ||
+      event?.data?.account_id ||
+      event?.data?.dedicated_account?.id ||
+      null;
+
+    const message =
+      event?.data?.message ||
+      event?.data?.dedicated_account?.message ||
+      event?.message ||
+      null;
+
+    const reason =
+      event?.data?.reason ||
+      event?.data?.failure_reason ||
+      event?.data?.dedicated_account?.reason ||
+      event?.data?.dedicated_account?.failure_reason ||
+      event?.reason ||
+      message ||
+      null;
+
+    // =====================================================
     // DEBUG PAYSTACK DVA FAILURE
     // =====================================================
 
@@ -712,39 +749,27 @@ const forwardLoanDvaWebhook = async (event) => {
 
     console.log(
       "CUSTOMER CODE:",
-      event?.data?.customer_code ||
-        event?.data?.customer?.customer_code ||
-        null,
+      customerCode,
     );
 
     console.log(
       "ACCOUNT NUMBER:",
-      event?.data?.account_number ||
-        event?.data?.account?.account_number ||
-        null,
+      accountNumber,
     );
 
     console.log(
       "ACCOUNT ID:",
-      event?.data?.id ||
-        event?.data?.dedicated_account_id ||
-        event?.data?.account_id ||
-        null,
+      accountId,
     );
 
     console.log(
       "MESSAGE:",
-      event?.data?.message ||
-        event?.message ||
-        null,
+      message,
     );
 
     console.log(
       "REASON:",
-      event?.data?.reason ||
-        event?.data?.failure_reason ||
-        event?.reason ||
-        null,
+      reason,
     );
 
     console.log(
@@ -777,10 +802,28 @@ const forwardLoanDvaWebhook = async (event) => {
     }
 
     // =====================================================
+    // ONLY FORWARD LOAN DVA EVENTS
+    // =====================================================
+
+    const supportedEvents = new Set([
+      "dedicatedaccount.assign.success",
+      "dedicatedaccount.assign.failed",
+    ]);
+
+    if (!supportedEvents.has(event?.event)) {
+      console.log(
+        "ℹ️ EVENT IS NOT A LOAN DVA EVENT:",
+        event?.event,
+      );
+
+      return false;
+    }
+
+    // =====================================================
     // FORWARD TO LOAN
     // =====================================================
 
-    await axios.post(
+    const response = await axios.post(
       loanDvaWebhookUrl,
       event,
       {
@@ -793,6 +836,9 @@ const forwardLoanDvaWebhook = async (event) => {
 
           "x-webhook-type":
             "loan-dva",
+
+          "x-webhook-event-type":
+            event.event,
         },
 
         timeout: 15000,
@@ -802,6 +848,11 @@ const forwardLoanDvaWebhook = async (event) => {
     console.log(
       "✅ LOAN DVA WEBHOOK FORWARDED:",
       event.event,
+    );
+
+    console.log(
+      "LOAN RESPONSE STATUS:",
+      response.status,
     );
 
     return true;

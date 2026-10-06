@@ -25,10 +25,7 @@ const sendAdminPaymentNotificationOnce = async (order) => {
 
     console.log("🔔 ADMIN NOTIFICATION SAVED AS COMPLETED");
   } catch (error) {
-    console.error(
-      "❌ FAILED TO SEND ADMIN NOTIFICATION:",
-      error.message,
-    );
+    console.error("❌ FAILED TO SEND ADMIN NOTIFICATION:", error.message);
   }
 };
 
@@ -50,8 +47,7 @@ const getPaymentSettings = async (req, res) => {
 
         paystackEnabled: true,
 
-        paystackPublicKey:
-          process.env.PAYSTACK_PUBLIC_KEY || "",
+        paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || "",
 
         paymentLinkEnabled: false,
 
@@ -65,8 +61,7 @@ const getPaymentSettings = async (req, res) => {
       data: {
         _id: payment._id,
 
-        bankTransferEnabled:
-          payment.bankTransferEnabled,
+        bankTransferEnabled: payment.bankTransferEnabled,
 
         bankName: payment.bankName,
 
@@ -74,24 +69,18 @@ const getPaymentSettings = async (req, res) => {
 
         accountNumber: payment.accountNumber,
 
-        paystackEnabled:
-          payment.paystackEnabled,
+        paystackEnabled: payment.paystackEnabled,
 
         paystackPublicKey:
-          process.env.PAYSTACK_PUBLIC_KEY ||
-          payment.paystackPublicKey,
+          process.env.PAYSTACK_PUBLIC_KEY || payment.paystackPublicKey,
 
-        paymentLinkEnabled:
-          payment.paymentLinkEnabled,
+        paymentLinkEnabled: payment.paymentLinkEnabled,
 
         paymentLink: payment.paymentLink,
       },
     });
   } catch (error) {
-    console.error(
-      "GET PAYMENT SETTINGS ERROR:",
-      error,
-    );
+    console.error("GET PAYMENT SETTINGS ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -130,26 +119,20 @@ const updatePaymentSettings = async (req, res) => {
     // BANK TRANSFER
     // ==========================================
 
-    if (
-      bankTransferEnabled !== undefined
-    ) {
-      payment.bankTransferEnabled =
-        bankTransferEnabled;
+    if (bankTransferEnabled !== undefined) {
+      payment.bankTransferEnabled = bankTransferEnabled;
     }
 
     if (bankName !== undefined) {
-      payment.bankName =
-        bankName?.trim() || "";
+      payment.bankName = bankName?.trim() || "";
     }
 
     if (accountName !== undefined) {
-      payment.accountName =
-        accountName?.trim() || "";
+      payment.accountName = accountName?.trim() || "";
     }
 
     if (accountNumber !== undefined) {
-      payment.accountNumber =
-        accountNumber?.trim() || "";
+      payment.accountNumber = accountNumber?.trim() || "";
     }
 
     // ==========================================
@@ -157,27 +140,21 @@ const updatePaymentSettings = async (req, res) => {
     // ==========================================
 
     if (paystackEnabled !== undefined) {
-      payment.paystackEnabled =
-        paystackEnabled;
+      payment.paystackEnabled = paystackEnabled;
     }
 
-    payment.paystackPublicKey =
-      process.env.PAYSTACK_PUBLIC_KEY || "";
+    payment.paystackPublicKey = process.env.PAYSTACK_PUBLIC_KEY || "";
 
     // ==========================================
     // PAYMENT LINK
     // ==========================================
 
-    if (
-      paymentLinkEnabled !== undefined
-    ) {
-      payment.paymentLinkEnabled =
-        paymentLinkEnabled;
+    if (paymentLinkEnabled !== undefined) {
+      payment.paymentLinkEnabled = paymentLinkEnabled;
     }
 
     if (paymentLink !== undefined) {
-      payment.paymentLink =
-        paymentLink?.trim() || "";
+      payment.paymentLink = paymentLink?.trim() || "";
     }
 
     // ==========================================
@@ -188,24 +165,21 @@ const updatePaymentSettings = async (req, res) => {
       if (!payment.bankName) {
         return res.status(400).json({
           success: false,
-          message:
-            "Bank name is required when bank transfer is enabled",
+          message: "Bank name is required when bank transfer is enabled",
         });
       }
 
       if (!payment.accountName) {
         return res.status(400).json({
           success: false,
-          message:
-            "Account name is required when bank transfer is enabled",
+          message: "Account name is required when bank transfer is enabled",
         });
       }
 
       if (!payment.accountNumber) {
         return res.status(400).json({
           success: false,
-          message:
-            "Account number is required when bank transfer is enabled",
+          message: "Account number is required when bank transfer is enabled",
         });
       }
     }
@@ -214,14 +188,10 @@ const updatePaymentSettings = async (req, res) => {
     // VALIDATE PAYMENT LINK
     // ==========================================
 
-    if (
-      payment.paymentLinkEnabled &&
-      !payment.paymentLink
-    ) {
+    if (payment.paymentLinkEnabled && !payment.paymentLink) {
       return res.status(400).json({
         success: false,
-        message:
-          "Payment link is required when payment link is enabled",
+        message: "Payment link is required when payment link is enabled",
       });
     }
 
@@ -230,21 +200,16 @@ const updatePaymentSettings = async (req, res) => {
     return res.status(200).json({
       success: true,
 
-      message:
-        "Payment settings saved successfully",
+      message: "Payment settings saved successfully",
 
       data: payment,
     });
   } catch (error) {
-    console.error(
-      "UPDATE PAYMENT SETTINGS ERROR:",
-      error,
-    );
+    console.error("UPDATE PAYMENT SETTINGS ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message:
-        "Failed to save payment settings",
+      message: "Failed to save payment settings",
     });
   }
 };
@@ -253,10 +218,7 @@ const updatePaymentSettings = async (req, res) => {
 // INITIALIZE PAYSTACK PAYMENT
 // ==========================================
 
-const initializePaystackPayment = async (
-  req,
-  res,
-) => {
+const initializePaystackPayment = async (req, res) => {
   try {
     const { orderId } = req.body;
 
@@ -267,8 +229,7 @@ const initializePaystackPayment = async (
       });
     }
 
-    const order =
-      await Order.findById(orderId);
+    const order = await Order.findById(orderId);
 
     if (!order) {
       return res.status(404).json({
@@ -277,141 +238,103 @@ const initializePaystackPayment = async (
       });
     }
 
-    if (
-      req.user &&
-      order.user.toString() !==
-        req.user._id.toString()
-    ) {
+    if (req.user && order.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        message:
-          "You are not authorized to pay for this order",
+        message: "You are not authorized to pay for this order",
       });
     }
 
-    if (
-      order.paymentStatus === "paid"
-    ) {
+    if (order.paymentStatus === "paid") {
       return res.status(400).json({
         success: false,
-        message:
-          "This order has already been paid",
+        message: "This order has already been paid",
       });
     }
 
     if (!order.customer.email) {
       return res.status(400).json({
         success: false,
-        message:
-          "A customer email is required for online payment",
+        message: "A customer email is required for online payment",
       });
     }
 
-    const settings =
-      await Payment.findOne();
+    const settings = await Payment.findOne();
 
-    if (
-      !settings ||
-      !settings.paystackEnabled
-    ) {
+    if (!settings || !settings.paystackEnabled) {
       return res.status(400).json({
         success: false,
-        message:
-          "Online payment is currently unavailable",
+        message: "Online payment is currently unavailable",
       });
     }
 
-    if (
-      !process.env.PAYSTACK_SECRET_KEY
-    ) {
-      console.error(
-        "❌ PAYSTACK_SECRET_KEY IS MISSING",
-      );
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error("❌ PAYSTACK_SECRET_KEY IS MISSING");
 
       return res.status(500).json({
         success: false,
-        message:
-          "Payment service is not configured",
+        message: "Payment service is not configured",
       });
     }
 
-    const reference =
-      `ORD_${order._id}_${Date.now()}`;
+    const reference = `ORD_${order._id}_${Date.now()}`;
 
     order.paymentMethod = "online";
 
     order.paymentProvider = "paystack";
 
-    order.paymentReference =
-      reference;
+    order.paymentReference = reference;
 
     await order.save();
 
-    const response =
-      await axios.post(
-        "https://api.paystack.co/transaction/initialize",
-        {
-          email:
-            order.customer.email,
+    const response = await axios.post(
+      "https://api.paystack.co/transaction/initialize",
+      {
+        email: order.customer.email,
 
-          amount:
-            Math.round(
-              Number(order.total) * 100,
-            ),
+        amount: Math.round(Number(order.total) * 100),
 
-          reference,
+        reference,
 
-          currency: "NGN",
+        currency: "NGN",
 
-          callback_url:
-            `${process.env.FRONTEND_URL}/payment/callback`,
+        callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
 
-          metadata: {
-            orderId:
-              order._id.toString(),
+        metadata: {
+          orderId: order._id.toString(),
 
-            customerName:
-              order.customer.name,
+          customerName: order.customer.name,
 
-            customerPhone:
-              order.customer.phone,
-          },
+          customerPhone: order.customer.phone,
         },
-        {
-          headers: {
-            Authorization:
-              `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
 
-            "Content-Type":
-              "application/json",
-          },
+          "Content-Type": "application/json",
         },
-      );
+      },
+    );
 
     return res.status(200).json({
       success: true,
 
-      message:
-        "Payment initialized successfully",
+      message: "Payment initialized successfully",
 
-      authorization_url:
-        response.data.data
-          .authorization_url,
+      authorization_url: response.data.data.authorization_url,
 
-      reference:
-        response.data.data.reference,
+      reference: response.data.data.reference,
     });
   } catch (error) {
     console.error(
       "PAYSTACK INITIALIZATION ERROR:",
-      error.response?.data ||
-        error.message,
+      error.response?.data || error.message,
     );
 
     return res.status(500).json({
       success: false,
-      message:
-        "Unable to initialize payment",
+      message: "Unable to initialize payment",
     });
   }
 };
@@ -420,171 +343,122 @@ const initializePaystackPayment = async (
 // VERIFY PAYSTACK PAYMENT
 // ==========================================
 
-const verifyPaystackPayment = async (
-  req,
-  res,
-) => {
+const verifyPaystackPayment = async (req, res) => {
   try {
-    const { reference } =
-      req.params;
+    const { reference } = req.params;
 
     if (!reference) {
       return res.status(400).json({
         success: false,
-        message:
-          "Payment reference is required",
+        message: "Payment reference is required",
       });
     }
 
-    const order =
-      await Order.findOne({
-        paymentReference: reference,
-      });
+    const order = await Order.findOne({
+      paymentReference: reference,
+    });
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message:
-          "Order not found for this payment",
+        message: "Order not found for this payment",
       });
     }
 
-    if (
-      order.paymentStatus === "paid"
-    ) {
+    if (order.paymentStatus === "paid") {
       return res.status(200).json({
         success: true,
-        message:
-          "Payment has already been verified",
+        message: "Payment has already been verified",
         order,
       });
     }
 
-    const response =
-      await axios.get(
-        `https://api.paystack.co/transaction/verify/${reference}`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          },
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
         },
-      );
+      },
+    );
 
-    const payment =
-      response.data.data;
+    const payment = response.data.data;
 
     if (payment.status !== "success") {
-      order.paymentStatus =
-        "failed";
+      order.paymentStatus = "failed";
 
       await order.save();
 
       return res.status(400).json({
         success: false,
-        message:
-          "Payment was not successful",
+        message: "Payment was not successful",
       });
     }
 
-    if (
-      payment.reference !==
-      reference
-    ) {
+    if (payment.reference !== reference) {
       return res.status(400).json({
         success: false,
-        message:
-          "Invalid payment reference",
+        message: "Invalid payment reference",
       });
     }
 
-    const expectedAmount =
-      Math.round(
-        Number(order.total) * 100,
-      );
+    const expectedAmount = Math.round(Number(order.total) * 100);
 
-    if (
-      payment.amount !==
-      expectedAmount
-    ) {
-      console.error(
-        "❌ PAYMENT AMOUNT MISMATCH",
-      );
+    if (payment.amount !== expectedAmount) {
+      console.error("❌ PAYMENT AMOUNT MISMATCH");
 
-      console.error(
-        "Expected:",
-        expectedAmount,
-      );
+      console.error("Expected:", expectedAmount);
 
-      console.error(
-        "Received:",
-        payment.amount,
-      );
+      console.error("Received:", payment.amount);
 
       return res.status(400).json({
         success: false,
-        message:
-          "Payment amount verification failed",
+        message: "Payment amount verification failed",
       });
     }
 
-    order.paymentStatus =
-      "paid";
+    order.paymentStatus = "paid";
 
-    order.paymentMethod =
-      "online";
+    order.paymentMethod = "online";
 
-    order.paymentProvider =
-      "paystack";
+    order.paymentProvider = "paystack";
 
-    order.paymentReference =
-      payment.reference;
+    order.paymentReference = payment.reference;
 
-    order.paidAmount =
-      payment.amount / 100;
+    order.paidAmount = payment.amount / 100;
 
-    order.paidAt =
-      new Date();
+    order.paidAt = new Date();
 
-    order.status =
-      "confirmed";
+    order.status = "confirmed";
 
     await order.save();
 
-    await sendAdminPaymentNotificationOnce(
-      order,
-    );
+    await sendAdminPaymentNotificationOnce(order);
 
     return res.status(200).json({
       success: true,
 
-      message:
-        "Payment verified successfully",
+      message: "Payment verified successfully",
 
       order: {
         _id: order._id,
 
-        paymentStatus:
-          order.paymentStatus,
+        paymentStatus: order.paymentStatus,
 
-        status:
-          order.status,
+        status: order.status,
 
-        total:
-          order.total,
+        total: order.total,
       },
     });
   } catch (error) {
     console.error(
       "PAYSTACK VERIFICATION ERROR:",
-      error.response?.data ||
-        error.message,
+      error.response?.data || error.message,
     );
 
     return res.status(500).json({
       success: false,
-      message:
-        "Unable to verify payment",
+      message: "Unable to verify payment",
     });
   }
 };
@@ -594,68 +468,52 @@ const verifyPaystackPayment = async (
 // PRODUCT → LOAN BACKEND
 // ==========================================
 
-const forwardLoanTransferWebhook =
-  async (event) => {
-    try {
-      const loanWebhookUrl =
-        process.env.LOAN_WEBHOOK_URL;
+const forwardLoanTransferWebhook = async (event) => {
+  try {
+    const loanWebhookUrl = process.env.LOAN_WEBHOOK_URL;
 
-      const loanWebhookSecret =
-        process.env.LOAN_WEBHOOK_SECRET;
+    const loanWebhookSecret = process.env.LOAN_WEBHOOK_SECRET;
 
-      if (!loanWebhookUrl) {
-        console.error(
-          "❌ LOAN_WEBHOOK_URL IS NOT CONFIGURED",
-        );
-
-        return false;
-      }
-
-      if (!loanWebhookSecret) {
-        console.error(
-          "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
-        );
-
-        return false;
-      }
-
-      await axios.post(
-        loanWebhookUrl,
-        event,
-        {
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            "x-loan-webhook-secret":
-              loanWebhookSecret,
-
-            "x-webhook-type":
-              "loan-transfer",
-          },
-
-          timeout: 15000,
-        },
-      );
-
-      console.log(
-        "✅ LOAN TRANSFER WEBHOOK FORWARDED:",
-        event.event,
-        event.data?.reference ||
-          null,
-      );
-
-      return true;
-    } catch (error) {
-      console.error(
-        "❌ FAILED TO FORWARD LOAN TRANSFER WEBHOOK:",
-        error.response?.data ||
-          error.message,
-      );
+    if (!loanWebhookUrl) {
+      console.error("❌ LOAN_WEBHOOK_URL IS NOT CONFIGURED");
 
       return false;
     }
-  };
+
+    if (!loanWebhookSecret) {
+      console.error("❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED");
+
+      return false;
+    }
+
+    await axios.post(loanWebhookUrl, event, {
+      headers: {
+        "Content-Type": "application/json",
+
+        "x-loan-webhook-secret": loanWebhookSecret,
+
+        "x-webhook-type": "loan-transfer",
+      },
+
+      timeout: 15000,
+    });
+
+    console.log(
+      "✅ LOAN TRANSFER WEBHOOK FORWARDED:",
+      event.event,
+      event.data?.reference || null,
+    );
+
+    return true;
+  } catch (error) {
+    console.error(
+      "❌ FAILED TO FORWARD LOAN TRANSFER WEBHOOK:",
+      error.response?.data || error.message,
+    );
+
+    return false;
+  }
+};
 
 // ==========================================
 // FORWARD LOAN DVA WEBHOOK
@@ -664,24 +522,15 @@ const forwardLoanTransferWebhook =
 
 const forwardLoanDvaWebhook = async (event) => {
   try {
-    const loanDvaWebhookUrl =
-      process.env.LOAN_DVA_WEBHOOK_URL;
+    const loanDvaWebhookUrl = process.env.LOAN_DVA_WEBHOOK_URL;
 
-    const loanWebhookSecret =
-      process.env.LOAN_WEBHOOK_SECRET;
+    const loanWebhookSecret = process.env.LOAN_WEBHOOK_SECRET;
 
-    console.log(
-      "=================================",
-    );
+    console.log("=================================");
 
-    console.log(
-      "🏦 LOAN DVA WEBHOOK FORWARD",
-    );
+    console.log("🏦 LOAN DVA WEBHOOK FORWARD");
 
-    console.log(
-      "EVENT:",
-      event?.event,
-    );
+    console.log("EVENT:", event?.event);
 
     // =====================================================
     // EXTRACT PAYSTACK DVA DATA
@@ -724,79 +573,44 @@ const forwardLoanDvaWebhook = async (event) => {
     // DEBUG PAYSTACK DVA FAILURE
     // =====================================================
 
-    if (
-      event?.event ===
-      "dedicatedaccount.assign.failed"
-    ) {
-      console.log(
-        "========== PAYSTACK DVA FAILURE PAYLOAD ==========",
-      );
+    if (event?.event === "dedicatedaccount.assign.failed") {
+      console.log("========== PAYSTACK DVA FAILURE PAYLOAD ==========");
 
       console.dir(event, {
         depth: null,
       });
 
-      console.log(
-        "==================================================",
-      );
+      console.log("==================================================");
     }
 
-    console.log(
-      "TARGET URL:",
-      loanDvaWebhookUrl ||
-        "NOT CONFIGURED",
-    );
+    console.log("TARGET URL:", loanDvaWebhookUrl || "NOT CONFIGURED");
 
-    console.log(
-      "CUSTOMER CODE:",
-      customerCode,
-    );
+    console.log("CUSTOMER CODE:", customerCode);
 
-    console.log(
-      "ACCOUNT NUMBER:",
-      accountNumber,
-    );
+    console.log("ACCOUNT NUMBER:", accountNumber);
 
-    console.log(
-      "ACCOUNT ID:",
-      accountId,
-    );
+    console.log("ACCOUNT ID:", accountId);
 
-    console.log(
-      "MESSAGE:",
-      message,
-    );
+    console.log("MESSAGE:", message);
 
-    console.log(
-      "REASON:",
-      reason,
-    );
+    console.log("REASON:", reason);
 
-    console.log(
-      "SECRET PRESENT:",
-      !!loanWebhookSecret,
-    );
+    console.log("SECRET PRESENT:", !!loanWebhookSecret);
 
-    console.log(
-      "=================================",
-    );
+    console.log("=================================");
 
     // =====================================================
     // VALIDATE CONFIG
     // =====================================================
 
     if (!loanDvaWebhookUrl) {
-      console.error(
-        "❌ LOAN_DVA_WEBHOOK_URL IS NOT CONFIGURED",
-      );
+      console.error("❌ LOAN_DVA_WEBHOOK_URL IS NOT CONFIGURED");
 
       return false;
     }
 
     if (!loanWebhookSecret) {
-      console.error(
-        "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
-      );
+      console.error("❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED");
 
       return false;
     }
@@ -811,10 +625,7 @@ const forwardLoanDvaWebhook = async (event) => {
     ]);
 
     if (!supportedEvents.has(event?.event)) {
-      console.log(
-        "ℹ️ EVENT IS NOT A LOAN DVA EVENT:",
-        event?.event,
-      );
+      console.log("ℹ️ EVENT IS NOT A LOAN DVA EVENT:", event?.event);
 
       return false;
     }
@@ -823,45 +634,110 @@ const forwardLoanDvaWebhook = async (event) => {
     // FORWARD TO LOAN
     // =====================================================
 
-    const response = await axios.post(
-      loanDvaWebhookUrl,
-      event,
-      {
-        headers: {
-          "Content-Type":
-            "application/json",
+    const response = await axios.post(loanDvaWebhookUrl, event, {
+      headers: {
+        "Content-Type": "application/json",
 
-          "x-loan-webhook-secret":
-            loanWebhookSecret,
+        "x-loan-webhook-secret": loanWebhookSecret,
 
-          "x-webhook-type":
-            "loan-dva",
+        "x-webhook-type": "loan-dva",
 
-          "x-webhook-event-type":
-            event.event,
-        },
-
-        timeout: 15000,
+        "x-webhook-event-type": event.event,
       },
-    );
 
-    console.log(
-      "✅ LOAN DVA WEBHOOK FORWARDED:",
-      event.event,
-    );
+      timeout: 15000,
+    });
 
-    console.log(
-      "LOAN RESPONSE STATUS:",
-      response.status,
-    );
+    console.log("✅ LOAN DVA WEBHOOK FORWARDED:", event.event);
+
+    console.log("LOAN RESPONSE STATUS:", response.status);
 
     return true;
   } catch (error) {
     console.error(
       "❌ FAILED TO FORWARD LOAN DVA WEBHOOK:",
-      error.response?.data ||
-        error.message,
+      error.response?.data || error.message,
     );
+
+    return false;
+  }
+};
+
+// ==========================================
+// FORWARD LOAN DVA PAYMENT WEBHOOK
+// PRODUCT → LOAN BACKEND
+// ==========================================
+
+const forwardLoanDvaPaymentWebhook = async (event) => {
+  try {
+    const loanRepaymentWebhookUrl = process.env.LOAN_REPAYMENT_WEBHOOK_URL;
+
+    const loanWebhookSecret = process.env.LOAN_WEBHOOK_SECRET;
+
+    if (!loanRepaymentWebhookUrl) {
+      console.error("❌ LOAN_REPAYMENT_WEBHOOK_URL IS NOT CONFIGURED");
+
+      return false;
+    }
+
+    if (!loanWebhookSecret) {
+      console.error("❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED");
+
+      return false;
+    }
+
+    console.log("➡️ FORWARDING DVA PAYMENT TO LOAN BACKEND");
+
+    console.log("➡️ DVA REFERENCE:", event?.data?.reference || null);
+
+    console.log("➡️ DVA AMOUNT:", Number(event?.data?.amount || 0) / 100);
+
+    console.log(
+      "➡️ DVA ACCOUNT NUMBER:",
+      event?.data?.authorization?.receiver_bank_account_number || null,
+    );
+
+    const response = await axios.post(loanRepaymentWebhookUrl, event, {
+      headers: {
+        "Content-Type": "application/json",
+
+        "x-loan-webhook-secret": loanWebhookSecret,
+
+        "x-webhook-type": "loan-repayment",
+      },
+
+      timeout: 15000,
+
+      // We want to inspect the Loan backend response
+      validateStatus: () => true,
+    });
+
+    console.log("⬅️ LOAN DVA PAYMENT RESPONSE STATUS:", response.status);
+
+    console.log("⬅️ LOAN DVA PAYMENT RESPONSE DATA:", response.data);
+
+    if (response.status >= 200 && response.status < 300) {
+      console.log(
+        "✅ DVA PAYMENT FORWARDED TO LOAN:",
+        event?.data?.reference || null,
+      );
+
+      return true;
+    }
+
+    console.error("❌ LOAN BACKEND REJECTED DVA PAYMENT");
+
+    return false;
+  } catch (error) {
+    console.error("❌ FAILED TO FORWARD DVA PAYMENT TO LOAN");
+
+    console.error("ERROR CODE:", error.code || null);
+
+    console.error("STATUS:", error.response?.status || null);
+
+    console.error("RESPONSE DATA:", error.response?.data || null);
+
+    console.error("ERROR MESSAGE:", error.message || null);
 
     return false;
   }
@@ -872,177 +748,113 @@ const forwardLoanDvaWebhook = async (event) => {
 // PRODUCT → LOAN BACKEND
 // ==========================================
 
-const forwardKycVerificationWebhook =
-  async (event) => {
-    try {
-      const loanKycWebhookUrl =
-        process.env.LOAN_KYC_WEBHOOK_URL;
-
-      const loanWebhookSecret =
-        process.env.LOAN_WEBHOOK_SECRET;
-
-      console.log(
-        "=================================",
-      );
-
-      console.log(
-        "🪪 KYC WEBHOOK FORWARD",
-      );
-
-      console.log(
-        "EVENT:",
-        event?.event,
-      );
-
-      console.log(
-        "TARGET URL:",
-        loanKycWebhookUrl ||
-          "NOT CONFIGURED",
-      );
-
-      console.log(
-        "SECRET PRESENT:",
-        !!loanWebhookSecret,
-      );
-
-      console.log(
-        "=================================",
-      );
-
-      if (!loanKycWebhookUrl) {
-        console.error(
-          "❌ LOAN_KYC_WEBHOOK_URL IS NOT CONFIGURED",
-        );
-
-        return false;
-      }
-
-      if (!loanWebhookSecret) {
-        console.error(
-          "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
-        );
-
-        return false;
-      }
-
-      await axios.post(
-        loanKycWebhookUrl,
-        event,
-        {
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            "x-loan-webhook-secret":
-              loanWebhookSecret,
-
-            "x-webhook-type":
-              "kyc",
-          },
-
-          timeout: 15000,
-        },
-      );
-
-      console.log(
-        "✅ KYC VERIFICATION WEBHOOK FORWARDED:",
-        event.event,
-        event.data?.customer_code ||
-          event.data?.customer?.customer_code ||
-          event.data?.reference ||
-          event.data
-            ?.customer_identification_reference ||
-          null,
-      );
-
-      return true;
-    } catch (error) {
-      console.error(
-        "❌ FAILED TO FORWARD KYC VERIFICATION WEBHOOK:",
-        error.response?.data ||
-          error.message,
-      );
-
-      return false;
-    }
-  };
-
-const forwardLoanRepaymentWebhook = async (event) => {
+const forwardKycVerificationWebhook = async (event) => {
   try {
-    const loanRepaymentWebhookUrl =
-      process.env.LOAN_REPAYMENT_WEBHOOK_URL;
+    const loanKycWebhookUrl = process.env.LOAN_KYC_WEBHOOK_URL;
 
-    const loanWebhookSecret =
-      process.env.LOAN_WEBHOOK_SECRET;
+    const loanWebhookSecret = process.env.LOAN_WEBHOOK_SECRET;
 
-    if (!loanRepaymentWebhookUrl) {
-      console.error(
-        "❌ LOAN_REPAYMENT_WEBHOOK_URL IS NOT CONFIGURED",
-      );
+    console.log("=================================");
+
+    console.log("🪪 KYC WEBHOOK FORWARD");
+
+    console.log("EVENT:", event?.event);
+
+    console.log("TARGET URL:", loanKycWebhookUrl || "NOT CONFIGURED");
+
+    console.log("SECRET PRESENT:", !!loanWebhookSecret);
+
+    console.log("=================================");
+
+    if (!loanKycWebhookUrl) {
+      console.error("❌ LOAN_KYC_WEBHOOK_URL IS NOT CONFIGURED");
 
       return false;
     }
 
     if (!loanWebhookSecret) {
-      console.error(
-        "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
-      );
+      console.error("❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED");
 
       return false;
     }
 
-    console.log(
-      "➡️ FORWARDING LOAN REPAYMENT WEBHOOK",
-    );
+    await axios.post(loanKycWebhookUrl, event, {
+      headers: {
+        "Content-Type": "application/json",
 
-    console.log(
-      "➡️ LOAN WEBHOOK URL:",
-      loanRepaymentWebhookUrl,
-    );
+        "x-loan-webhook-secret": loanWebhookSecret,
 
-    console.log(
-      "➡️ REPAYMENT REFERENCE:",
-      event?.data?.reference || null,
-    );
-
-    const response = await axios.post(
-      loanRepaymentWebhookUrl,
-      event,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "x-loan-webhook-secret":
-            loanWebhookSecret,
-          "x-webhook-type":
-            "loan-repayment",
-        },
-
-        timeout: 15000,
-
-        // Don't let Axios hide the actual HTTP response.
-        validateStatus: () => true,
+        "x-webhook-type": "kyc",
       },
-    );
+
+      timeout: 15000,
+    });
 
     console.log(
-      "⬅️ LOAN WEBHOOK RESPONSE STATUS:",
-      response.status,
+      "✅ KYC VERIFICATION WEBHOOK FORWARDED:",
+      event.event,
+      event.data?.customer_code ||
+        event.data?.customer?.customer_code ||
+        event.data?.reference ||
+        event.data?.customer_identification_reference ||
+        null,
     );
 
-    console.log(
-      "⬅️ LOAN WEBHOOK RESPONSE DATA:",
-      response.data,
+    return true;
+  } catch (error) {
+    console.error(
+      "❌ FAILED TO FORWARD KYC VERIFICATION WEBHOOK:",
+      error.response?.data || error.message,
     );
 
-    console.log(
-      "⬅️ LOAN WEBHOOK RESPONSE HEADERS:",
-      response.headers,
-    );
+    return false;
+  }
+};
 
-    if (
-      response.status >= 200 &&
-      response.status < 300
-    ) {
+const forwardLoanRepaymentWebhook = async (event) => {
+  try {
+    const loanRepaymentWebhookUrl = process.env.LOAN_REPAYMENT_WEBHOOK_URL;
+
+    const loanWebhookSecret = process.env.LOAN_WEBHOOK_SECRET;
+
+    if (!loanRepaymentWebhookUrl) {
+      console.error("❌ LOAN_REPAYMENT_WEBHOOK_URL IS NOT CONFIGURED");
+
+      return false;
+    }
+
+    if (!loanWebhookSecret) {
+      console.error("❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED");
+
+      return false;
+    }
+
+    console.log("➡️ FORWARDING LOAN REPAYMENT WEBHOOK");
+
+    console.log("➡️ LOAN WEBHOOK URL:", loanRepaymentWebhookUrl);
+
+    console.log("➡️ REPAYMENT REFERENCE:", event?.data?.reference || null);
+
+    const response = await axios.post(loanRepaymentWebhookUrl, event, {
+      headers: {
+        "Content-Type": "application/json",
+        "x-loan-webhook-secret": loanWebhookSecret,
+        "x-webhook-type": "loan-repayment",
+      },
+
+      timeout: 15000,
+
+      // Don't let Axios hide the actual HTTP response.
+      validateStatus: () => true,
+    });
+
+    console.log("⬅️ LOAN WEBHOOK RESPONSE STATUS:", response.status);
+
+    console.log("⬅️ LOAN WEBHOOK RESPONSE DATA:", response.data);
+
+    console.log("⬅️ LOAN WEBHOOK RESPONSE HEADERS:", response.headers);
+
+    if (response.status >= 200 && response.status < 300) {
       console.log(
         "✅ LOAN REPAYMENT WEBHOOK FORWARDED:",
         event?.data?.reference || null,
@@ -1051,50 +863,25 @@ const forwardLoanRepaymentWebhook = async (event) => {
       return true;
     }
 
-    console.error(
-      "❌ LOAN REPAYMENT WEBHOOK REJECTED",
-    );
+    console.error("❌ LOAN REPAYMENT WEBHOOK REJECTED");
 
     return false;
   } catch (error) {
-    console.error(
-      "❌ FAILED TO FORWARD LOAN REPAYMENT WEBHOOK",
-    );
+    console.error("❌ FAILED TO FORWARD LOAN REPAYMENT WEBHOOK");
 
-    console.error(
-      "ERROR CODE:",
-      error.code || null,
-    );
+    console.error("ERROR CODE:", error.code || null);
 
-    console.error(
-      "STATUS:",
-      error.response?.status || null,
-    );
+    console.error("STATUS:", error.response?.status || null);
 
-    console.error(
-      "STATUS TEXT:",
-      error.response?.statusText || null,
-    );
+    console.error("STATUS TEXT:", error.response?.statusText || null);
 
-    console.error(
-      "URL:",
-      error.config?.url || null,
-    );
+    console.error("URL:", error.config?.url || null);
 
-    console.error(
-      "RESPONSE HEADERS:",
-      error.response?.headers || null,
-    );
+    console.error("RESPONSE HEADERS:", error.response?.headers || null);
 
-    console.error(
-      "RESPONSE DATA:",
-      error.response?.data || null,
-    );
+    console.error("RESPONSE DATA:", error.response?.data || null);
 
-    console.error(
-      "ERROR MESSAGE:",
-      error.message || null,
-    );
+    console.error("ERROR MESSAGE:", error.message || null);
 
     return false;
   }
@@ -1104,40 +891,22 @@ const forwardLoanRepaymentWebhook = async (event) => {
 // PAYSTACK WEBHOOK
 // ==========================================
 
-const paystackWebhook = async (
-  req,
-  res,
-) => {
-  console.log(
-    "🔥🔥🔥 PAYSTACK WEBHOOK CONTROLLER HIT 🔥🔥🔥",
-  );
+const paystackWebhook = async (req, res) => {
+  console.log("🔥🔥🔥 PAYSTACK WEBHOOK CONTROLLER HIT 🔥🔥🔥");
 
-  console.log(
-    "METHOD:",
-    req.method,
-  );
+  console.log("METHOD:", req.method);
 
-  console.log(
-    "URL:",
-    req.originalUrl,
-  );
+  console.log("URL:", req.originalUrl);
 
-  console.log(
-    "BODY IS BUFFER:",
-    Buffer.isBuffer(req.body),
-  );
+  console.log("BODY IS BUFFER:", Buffer.isBuffer(req.body));
 
   try {
     // ==========================================
     // CHECK PAYSTACK SECRET KEY
     // ==========================================
 
-    if (
-      !process.env.PAYSTACK_SECRET_KEY
-    ) {
-      console.error(
-        "❌ PAYSTACK_SECRET_KEY IS MISSING",
-      );
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error("❌ PAYSTACK_SECRET_KEY IS MISSING");
 
       return res.sendStatus(500);
     }
@@ -1147,9 +916,7 @@ const paystackWebhook = async (
     // ==========================================
 
     if (!Buffer.isBuffer(req.body)) {
-      console.error(
-        "❌ PAYSTACK WEBHOOK BODY IS NOT RAW BUFFER",
-      );
+      console.error("❌ PAYSTACK WEBHOOK BODY IS NOT RAW BUFFER");
 
       return res.sendStatus(400);
     }
@@ -1158,15 +925,10 @@ const paystackWebhook = async (
     // GET PAYSTACK SIGNATURE
     // ==========================================
 
-    const signature =
-      req.headers[
-        "x-paystack-signature"
-      ];
+    const signature = req.headers["x-paystack-signature"];
 
     if (!signature) {
-      console.error(
-        "❌ PAYSTACK WEBHOOK SIGNATURE MISSING",
-      );
+      console.error("❌ PAYSTACK WEBHOOK SIGNATURE MISSING");
 
       return res.sendStatus(401);
     }
@@ -1176,24 +938,17 @@ const paystackWebhook = async (
     // ==========================================
 
     const hash = crypto
-      .createHmac(
-        "sha512",
-        process.env.PAYSTACK_SECRET_KEY,
-      )
+      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
       .update(req.body)
       .digest("hex");
 
     if (hash !== signature) {
-      console.error(
-        "❌ INVALID PAYSTACK WEBHOOK SIGNATURE",
-      );
+      console.error("❌ INVALID PAYSTACK WEBHOOK SIGNATURE");
 
       return res.sendStatus(401);
     }
 
-    console.log(
-      "✅ PAYSTACK WEBHOOK SIGNATURE VERIFIED",
-    );
+    console.log("✅ PAYSTACK WEBHOOK SIGNATURE VERIFIED");
 
     // ==========================================
     // PARSE RAW BODY
@@ -1202,14 +957,9 @@ const paystackWebhook = async (
     let event;
 
     try {
-      event = JSON.parse(
-        req.body.toString("utf8"),
-      );
+      event = JSON.parse(req.body.toString("utf8"));
     } catch (parseError) {
-      console.error(
-        "❌ INVALID PAYSTACK WEBHOOK JSON:",
-        parseError.message,
-      );
+      console.error("❌ INVALID PAYSTACK WEBHOOK JSON:", parseError.message);
 
       return res.sendStatus(400);
     }
@@ -1218,78 +968,43 @@ const paystackWebhook = async (
     // VALIDATE EVENT
     // ==========================================
 
-    if (
-      !event ||
-      typeof event !== "object"
-    ) {
-      console.error(
-        "❌ INVALID PAYSTACK WEBHOOK EVENT",
-      );
+    if (!event || typeof event !== "object") {
+      console.error("❌ INVALID PAYSTACK WEBHOOK EVENT");
 
       return res.sendStatus(400);
     }
 
-    console.log(
-      "📩 PAYSTACK WEBHOOK:",
-      event.event,
-    );
+    console.log("📩 PAYSTACK WEBHOOK:", event.event);
 
     // ==========================================
     // LOAN TRANSFER EVENTS
     // ==========================================
 
-    const loanTransferEvents =
-      new Set([
-        "transfer.success",
-        "transfer.failed",
-        "transfer.reversed",
-      ]);
+    const loanTransferEvents = new Set([
+      "transfer.success",
+      "transfer.failed",
+      "transfer.reversed",
+    ]);
 
-    if (
-      loanTransferEvents.has(
-        event.event,
-      )
-    ) {
-      console.log(
-        "🏦 LOAN TRANSFER EVENT RECEIVED:",
-        event.event,
-      );
+    if (loanTransferEvents.has(event.event)) {
+      console.log("🏦 LOAN TRANSFER EVENT RECEIVED:", event.event);
 
       if (!event.data) {
-        console.error(
-          "❌ PAYSTACK TRANSFER EVENT DATA MISSING",
-        );
+        console.error("❌ PAYSTACK TRANSFER EVENT DATA MISSING");
 
         return res.sendStatus(200);
       }
 
-      console.log(
-        "REFERENCE:",
-        event.data.reference ||
-          null,
-      );
+      console.log("REFERENCE:", event.data.reference || null);
 
-      console.log(
-        "TRANSFER CODE:",
-        event.data.transfer_code ||
-          null,
-      );
+      console.log("TRANSFER CODE:", event.data.transfer_code || null);
 
-      console.log(
-        "TRANSFER ID:",
-        event.data.id ||
-          null,
-      );
+      console.log("TRANSFER ID:", event.data.id || null);
 
-      const forwarded =
-        await forwardLoanTransferWebhook(
-          event,
-        );
+      const forwarded = await forwardLoanTransferWebhook(event);
 
       if (!forwarded) {
-        console.error(
-          "❌ LOAN TRANSFER WEBHOOK FORWARDING FAILED",
-        );
+        console.error("❌ LOAN TRANSFER WEBHOOK FORWARDING FAILED");
 
         return res.sendStatus(500);
       }
@@ -1297,8 +1012,7 @@ const paystackWebhook = async (
       console.log(
         "✅ LOAN TRANSFER EVENT PROCESSED:",
         event.event,
-        event.data.reference ||
-          null,
+        event.data.reference || null,
       );
 
       return res.sendStatus(200);
@@ -1308,26 +1022,16 @@ const paystackWebhook = async (
     // LOAN DVA EVENTS
     // ==========================================
 
-    const loanDvaEvents =
-      new Set([
-        "dedicatedaccount.assign.success",
-        "dedicatedaccount.assign.failed",
-      ]);
+    const loanDvaEvents = new Set([
+      "dedicatedaccount.assign.success",
+      "dedicatedaccount.assign.failed",
+    ]);
 
-    if (
-      loanDvaEvents.has(
-        event.event,
-      )
-    ) {
-      console.log(
-        "🏦 LOAN DVA EVENT RECEIVED:",
-        event.event,
-      );
+    if (loanDvaEvents.has(event.event)) {
+      console.log("🏦 LOAN DVA EVENT RECEIVED:", event.event);
 
       if (!event.data) {
-        console.error(
-          "❌ PAYSTACK DVA EVENT DATA MISSING",
-        );
+        console.error("❌ PAYSTACK DVA EVENT DATA MISSING");
 
         return res.sendStatus(200);
       }
@@ -1338,54 +1042,37 @@ const paystackWebhook = async (
 
       console.log(
         "CUSTOMER CODE:",
-        event.data.customer_code ||
-          event.data.customer?.customer_code ||
-          null,
+        event.data.customer_code || event.data.customer?.customer_code || null,
       );
 
       console.log(
         "ACCOUNT NUMBER:",
-        event.data.account_number ||
-          event.data.account?.account_number ||
-          null,
+        event.data.account_number || event.data.account?.account_number || null,
       );
 
       console.log(
         "ACCOUNT ID:",
-        event.data.id ||
-          event.data.account?.id ||
-          null,
+        event.data.id || event.data.account?.id || null,
       );
 
       console.log(
         "ERROR:",
-        event.data.error ||
-          event.data.message ||
-          event.data.reason ||
-          null,
+        event.data.error || event.data.message || event.data.reason || null,
       );
 
       // ------------------------------------------
       // FORWARD TO LOAN BACKEND
       // ------------------------------------------
 
-      const forwarded =
-        await forwardLoanDvaWebhook(
-          event,
-        );
+      const forwarded = await forwardLoanDvaWebhook(event);
 
       if (!forwarded) {
-        console.error(
-          "❌ LOAN DVA WEBHOOK FORWARDING FAILED",
-        );
+        console.error("❌ LOAN DVA WEBHOOK FORWARDING FAILED");
 
         return res.sendStatus(500);
       }
 
-      console.log(
-        "✅ LOAN DVA EVENT PROCESSED:",
-        event.event,
-      );
+      console.log("✅ LOAN DVA EVENT PROCESSED:", event.event);
 
       return res.sendStatus(200);
     }
@@ -1394,69 +1081,46 @@ const paystackWebhook = async (
     // CUSTOMER IDENTIFICATION EVENTS
     // ==========================================
 
-    const customerIdentificationEvents =
-      new Set([
-        "customeridentification.success",
-        "customeridentification.failed",
-      ]);
+    const customerIdentificationEvents = new Set([
+      "customeridentification.success",
+      "customeridentification.failed",
+    ]);
 
-    if (
-      customerIdentificationEvents.has(
-        event.event,
-      )
-    ) {
-      console.log(
-        "🪪 CUSTOMER IDENTIFICATION EVENT RECEIVED:",
-        event.event,
-      );
+    if (customerIdentificationEvents.has(event.event)) {
+      console.log("🪪 CUSTOMER IDENTIFICATION EVENT RECEIVED:", event.event);
 
       if (!event.data) {
-        console.error(
-          "❌ PAYSTACK CUSTOMER IDENTIFICATION DATA MISSING",
-        );
+        console.error("❌ PAYSTACK CUSTOMER IDENTIFICATION DATA MISSING");
 
         return res.sendStatus(200);
       }
 
       console.log(
         "CUSTOMER CODE:",
-        event.data.customer_code ||
-          event.data.customer?.customer_code ||
-          null,
+        event.data.customer_code || event.data.customer?.customer_code || null,
       );
 
       console.log(
         "REFERENCE:",
         event.data.reference ||
-          event.data
-            .customer_identification_reference ||
+          event.data.customer_identification_reference ||
           null,
       );
 
       console.log(
         "IDENTIFICATION STATUS:",
-        event.data.status ||
-          event.data.verification_status ||
-          null,
+        event.data.status || event.data.verification_status || null,
       );
 
-      const forwarded =
-        await forwardKycVerificationWebhook(
-          event,
-        );
+      const forwarded = await forwardKycVerificationWebhook(event);
 
       if (!forwarded) {
-        console.error(
-          "❌ KYC WEBHOOK FORWARDING FAILED",
-        );
+        console.error("❌ KYC WEBHOOK FORWARDING FAILED");
 
         return res.sendStatus(500);
       }
 
-      console.log(
-        "✅ CUSTOMER IDENTIFICATION EVENT PROCESSED:",
-        event.event,
-      );
+      console.log("✅ CUSTOMER IDENTIFICATION EVENT PROCESSED:", event.event);
 
       return res.sendStatus(200);
     }
@@ -1465,21 +1129,15 @@ const paystackWebhook = async (
     // HANDLE SUCCESSFUL PAYSTACK CHARGE
     // ==========================================
 
-    if (
-      event.event ===
-      "charge.success"
-    ) {
-      const payment =
-        event.data;
+    if (event.event === "charge.success") {
+      const payment = event.data;
 
       // ------------------------------------------
       // CHECK PAYMENT DATA
       // ------------------------------------------
 
       if (!payment) {
-        console.error(
-          "❌ PAYSTACK WEBHOOK PAYMENT DATA MISSING",
-        );
+        console.error("❌ PAYSTACK WEBHOOK PAYMENT DATA MISSING");
 
         return res.sendStatus(200);
       }
@@ -1488,44 +1146,23 @@ const paystackWebhook = async (
       // GET PAYMENT REFERENCE
       // ------------------------------------------
 
-      const reference =
-        payment.reference;
+      const reference = payment.reference;
 
       if (!reference) {
-        console.error(
-          "❌ PAYSTACK WEBHOOK REFERENCE MISSING",
-        );
+        console.error("❌ PAYSTACK WEBHOOK REFERENCE MISSING");
 
         return res.sendStatus(200);
       }
 
-      console.log(
-        "💳 CHARGE.SUCCESS REFERENCE:",
-        reference,
-      );
+      console.log("💳 CHARGE.SUCCESS REFERENCE:", reference);
 
-      console.log(
-        "💰 CHARGE AMOUNT:",
-        Number(payment.amount) / 100,
-      );
+      console.log("💰 CHARGE AMOUNT:", Number(payment.amount) / 100);
 
-      console.log(
-        "💱 CHARGE CURRENCY:",
-        payment.currency ||
-          null,
-      );
+      console.log("💱 CHARGE CURRENCY:", payment.currency || null);
 
-      console.log(
-        "📊 CHARGE STATUS:",
-        payment.status ||
-          null,
-      );
+      console.log("📊 CHARGE STATUS:", payment.status || null);
 
-      console.log(
-        "🆔 PAYSTACK TRANSACTION ID:",
-        payment.id ||
-          null,
-      );
+      console.log("🆔 PAYSTACK TRANSACTION ID:", payment.id || null);
 
       // ==========================================
       // LOAN REPAYMENT
@@ -1539,25 +1176,14 @@ const paystackWebhook = async (
       // because loan repayments are not Orders.
       // ==========================================
 
-      if (
-        String(reference).startsWith(
-          "REPAY-LN-",
-        )
-      ) {
-        console.log(
-          "🏦 LOAN REPAYMENT CHARGE SUCCESS:",
-          reference,
-        );
+      if (String(reference).startsWith("REPAY-LN-")) {
+        console.log("🏦 LOAN REPAYMENT CHARGE SUCCESS:", reference);
 
         // ----------------------------------------
         // VERIFY PAYSTACK STATUS
         // ----------------------------------------
 
-        if (
-          payment.status &&
-          payment.status !==
-            "success"
-        ) {
+        if (payment.status && payment.status !== "success") {
           console.error(
             "❌ LOAN REPAYMENT PAYMENT STATUS IS NOT SUCCESS:",
             payment.status,
@@ -1570,19 +1196,12 @@ const paystackWebhook = async (
         // VERIFY CURRENCY
         // ----------------------------------------
 
-        if (
-          payment.currency &&
-          payment.currency !==
-            "NGN"
-        ) {
-          console.error(
-            "❌ LOAN REPAYMENT CURRENCY MISMATCH",
-          );
+        if (payment.currency && payment.currency !== "NGN") {
+          console.error("❌ LOAN REPAYMENT CURRENCY MISMATCH");
 
           console.error({
             expected: "NGN",
-            received:
-              payment.currency,
+            received: payment.currency,
             reference,
           });
 
@@ -1593,70 +1212,37 @@ const paystackWebhook = async (
         // VERIFY PURPOSE
         // ----------------------------------------
 
-        const purpose =
-          payment.metadata?.purpose;
+        const purpose = payment.metadata?.purpose;
 
-        if (
-          purpose &&
-          purpose !==
-            "LOAN_REPAYMENT"
-        ) {
-          console.error(
-            "❌ INVALID LOAN REPAYMENT PURPOSE:",
-            purpose,
-          );
+        if (purpose && purpose !== "LOAN_REPAYMENT") {
+          console.error("❌ INVALID LOAN REPAYMENT PURPOSE:", purpose);
 
           return res.sendStatus(200);
         }
 
-        console.log(
-          "🎯 REPAYMENT PURPOSE:",
-          purpose ||
-            "LOAN_REPAYMENT",
-        );
+        console.log("🎯 REPAYMENT PURPOSE:", purpose || "LOAN_REPAYMENT");
 
         // ----------------------------------------
         // LOG METADATA
         // ----------------------------------------
 
-        console.log(
-          "📦 LOAN REPAYMENT METADATA:",
-          {
-            mandateReference:
-              payment.metadata
-                ?.mandateReference ||
-              null,
+        console.log("📦 LOAN REPAYMENT METADATA:", {
+          mandateReference: payment.metadata?.mandateReference || null,
 
-            userId:
-              payment.metadata
-                ?.userId ||
-              null,
+          userId: payment.metadata?.userId || null,
 
-            loanOfferId:
-              payment.metadata
-                ?.loanOfferId ||
-              null,
+          loanOfferId: payment.metadata?.loanOfferId || null,
 
-            loanApplicationId:
-              payment.metadata
-                ?.loanApplicationId ||
-              null,
+          loanApplicationId: payment.metadata?.loanApplicationId || null,
 
-            purpose:
-              payment.metadata
-                ?.purpose ||
-              null,
-          },
-        );
+          purpose: payment.metadata?.purpose || null,
+        });
 
         // ----------------------------------------
         // FORWARD TO LOAN BACKEND
         // ----------------------------------------
 
-        const forwarded =
-          await forwardLoanRepaymentWebhook(
-            event,
-          );
+        const forwarded = await forwardLoanRepaymentWebhook(event);
 
         if (!forwarded) {
           console.error(
@@ -1672,15 +1258,12 @@ const paystackWebhook = async (
           return res.sendStatus(500);
         }
 
-        console.log(
-          "✅ LOAN REPAYMENT WEBHOOK FORWARDED:",
-          reference,
-        );
+        console.log("✅ LOAN REPAYMENT WEBHOOK FORWARDED:", reference);
 
         return res.sendStatus(200);
       }
 
-            // ==========================================
+      // ==========================================
       // DVA PAYMENT
       // ==========================================
       //
@@ -1695,53 +1278,69 @@ const paystackWebhook = async (
       // ==========================================
 
       const isDvaPayment =
-        payment.authorization?.channel ===
-        "dedicated_nuban";
+        payment.authorization?.channel === "dedicated_nuban" ||
+        payment.channel === "dedicated_nuban";
 
       if (isDvaPayment) {
+        console.log("🏦 DVA CHARGE SUCCESS DETECTED:", reference);
+
+        console.log("🏦 DVA AMOUNT:", Number(payment.amount) / 100);
+
         console.log(
-          "🏦 DVA CHARGE SUCCESS DETECTED:",
-          reference,
+          "🏦 DVA ACCOUNT NUMBER:",
+          payment.authorization?.receiver_bank_account_number || null,
         );
 
         console.log(
-          "🏦 DVA CHARGE SUCCESS FULL DATA:",
-          JSON.stringify(payment, null, 2),
+          "🏦 DVA CUSTOMER CODE:",
+          payment.customer?.customer_code || null,
         );
 
-        console.log(
-          "🏦 DVA AUTHORIZATION:",
-          payment.authorization || null,
-        );
-
-        console.log(
-          "🏦 DVA CUSTOMER:",
-          payment.customer || null,
-        );
-
-        console.log(
-          "🏦 DVA METADATA:",
-          payment.metadata || null,
-        );
-
-        console.log(
-          "🏦 DVA AMOUNT:",
-          Number(payment.amount) / 100,
-        );
-
-        console.log(
-          "🏦 DVA REFERENCE:",
-          payment.reference,
-        );
+        console.log("🏦 DVA PAYSTACK TRANSACTION ID:", payment.id || null);
 
         // ------------------------------------------
-        // TEMPORARY STOP
+        // VERIFY STATUS
         // ------------------------------------------
-        //
-        // Do not process as an Order yet.
-        // We first need to identify how this DVA
-        // payment is linked to the loan/user.
+
+        if (payment.status && payment.status !== "success") {
+          console.error(
+            "❌ DVA PAYMENT STATUS IS NOT SUCCESS:",
+            payment.status,
+          );
+
+          return res.sendStatus(200);
+        }
+
         // ------------------------------------------
+        // VERIFY CURRENCY
+        // ------------------------------------------
+
+        if (payment.currency && payment.currency !== "NGN") {
+          console.error(
+            "❌ DVA PAYMENT CURRENCY IS NOT NGN:",
+            payment.currency,
+          );
+
+          return res.sendStatus(200);
+        }
+
+        // ------------------------------------------
+        // FORWARD TO LOAN BACKEND
+        // ------------------------------------------
+
+        const forwarded = await forwardLoanDvaPaymentWebhook(event);
+
+        if (!forwarded) {
+          console.error("❌ DVA PAYMENT FORWARDING TO LOAN FAILED:", reference);
+
+          /*
+           * IMPORTANT:
+           * Return 500 so Paystack can retry.
+           */
+          return res.sendStatus(500);
+        }
+
+        console.log("✅ DVA PAYMENT FORWARDED TO LOAN:", reference);
 
         return res.sendStatus(200);
       }
@@ -1750,22 +1349,14 @@ const paystackWebhook = async (
       // NORMAL PRODUCT PAYMENT
       // ==========================================
 
-      console.log(
-        "🛒 PROCESSING NORMAL PRODUCT PAYMENT:",
-        reference,
-      );
+      console.log("🛒 PROCESSING NORMAL PRODUCT PAYMENT:", reference);
 
-      const order =
-        await Order.findOne({
-          paymentReference:
-            reference,
-        });
+      const order = await Order.findOne({
+        paymentReference: reference,
+      });
 
       if (!order) {
-        console.log(
-          "⚠️ ORDER NOT FOUND:",
-          reference,
-        );
+        console.log("⚠️ ORDER NOT FOUND:", reference);
 
         return res.sendStatus(200);
       }
@@ -1774,14 +1365,8 @@ const paystackWebhook = async (
       // IDEMPOTENCY
       // ------------------------------------------
 
-      if (
-        order.paymentStatus ===
-        "paid"
-      ) {
-        console.log(
-          "ℹ️ PAYMENT ALREADY PROCESSED:",
-          reference,
-        );
+      if (order.paymentStatus === "paid") {
+        console.log("ℹ️ PAYMENT ALREADY PROCESSED:", reference);
 
         return res.sendStatus(200);
       }
@@ -1790,20 +1375,13 @@ const paystackWebhook = async (
       // VERIFY REFERENCE
       // ------------------------------------------
 
-      if (
-        payment.reference !==
-        order.paymentReference
-      ) {
-        console.error(
-          "❌ WEBHOOK PAYMENT REFERENCE MISMATCH",
-        );
+      if (payment.reference !== order.paymentReference) {
+        console.error("❌ WEBHOOK PAYMENT REFERENCE MISMATCH");
 
         console.error({
-          expected:
-            order.paymentReference,
+          expected: order.paymentReference,
 
-          received:
-            payment.reference,
+          received: payment.reference,
         });
 
         return res.sendStatus(200);
@@ -1813,26 +1391,15 @@ const paystackWebhook = async (
       // VERIFY AMOUNT
       // ------------------------------------------
 
-      const expectedAmount =
-        Math.round(
-          Number(order.total) *
-            100,
-        );
+      const expectedAmount = Math.round(Number(order.total) * 100);
 
-      if (
-        Number(payment.amount) !==
-        expectedAmount
-      ) {
-        console.error(
-          "❌ WEBHOOK PAYMENT AMOUNT MISMATCH",
-        );
+      if (Number(payment.amount) !== expectedAmount) {
+        console.error("❌ WEBHOOK PAYMENT AMOUNT MISMATCH");
 
         console.error({
-          expected:
-            expectedAmount,
+          expected: expectedAmount,
 
-          received:
-            payment.amount,
+          received: payment.amount,
 
           reference,
         });
@@ -1844,21 +1411,13 @@ const paystackWebhook = async (
       // VERIFY CURRENCY
       // ------------------------------------------
 
-      if (
-        payment.currency &&
-        payment.currency !==
-          "NGN"
-      ) {
-        console.error(
-          "❌ WEBHOOK PAYMENT CURRENCY MISMATCH",
-        );
+      if (payment.currency && payment.currency !== "NGN") {
+        console.error("❌ WEBHOOK PAYMENT CURRENCY MISMATCH");
 
         console.error({
-          expected:
-            "NGN",
+          expected: "NGN",
 
-          received:
-            payment.currency,
+          received: payment.currency,
 
           reference,
         });
@@ -1870,27 +1429,19 @@ const paystackWebhook = async (
       // UPDATE ORDER
       // ------------------------------------------
 
-      order.paymentStatus =
-        "paid";
+      order.paymentStatus = "paid";
 
-      order.paymentMethod =
-        "online";
+      order.paymentMethod = "online";
 
-      order.paymentProvider =
-        "paystack";
+      order.paymentProvider = "paystack";
 
-      order.paymentReference =
-        payment.reference;
+      order.paymentReference = payment.reference;
 
-      order.paidAmount =
-        Number(payment.amount) /
-        100;
+      order.paidAmount = Number(payment.amount) / 100;
 
-      order.paidAt =
-        new Date();
+      order.paidAt = new Date();
 
-      order.status =
-        "confirmed";
+      order.status = "confirmed";
 
       await order.save();
 
@@ -1898,13 +1449,9 @@ const paystackWebhook = async (
       // ADMIN NOTIFICATION
       // ------------------------------------------
 
-      await sendAdminPaymentNotificationOnce(
-        order,
-      );
+      await sendAdminPaymentNotificationOnce(order);
 
-      console.log(
-        `✅ ORDER ${order._id} PAYMENT CONFIRMED`,
-      );
+      console.log(`✅ ORDER ${order._id} PAYMENT CONFIRMED`);
     }
 
     // ==========================================
@@ -1915,8 +1462,7 @@ const paystackWebhook = async (
   } catch (error) {
     console.error(
       "❌ PAYSTACK WEBHOOK ERROR:",
-      error.response?.data ||
-        error.message,
+      error.response?.data || error.message,
     );
 
     return res.sendStatus(500);
@@ -1927,60 +1473,44 @@ const paystackWebhook = async (
 // NOTIFY ADMINS ABOUT PAID ORDER
 // ==========================================
 
-const notifyAdminsAboutPaidOrder =
-  async (order) => {
-    try {
-      const admins =
-        await User.find({
-          isAdmin: true,
-        }).select("_id");
+const notifyAdminsAboutPaidOrder = async (order) => {
+  try {
+    const admins = await User.find({
+      isAdmin: true,
+    }).select("_id");
 
-      if (!admins.length) {
-        console.log(
-          "⚠️ NO ADMIN USERS FOUND FOR PAYMENT NOTIFICATION",
-        );
+    if (!admins.length) {
+      console.log("⚠️ NO ADMIN USERS FOUND FOR PAYMENT NOTIFICATION");
 
-        return;
-      }
-
-      const productNames =
-        order.items
-          .map((item) => item.name)
-          .join(", ");
-
-      await Promise.all(
-        admins.map((admin) =>
-          notify({
-            user: admin._id,
-
-            sender: order.user,
-
-            type: "order",
-
-            orderId: order._id,
-
-            message:
-              `💰 New paid order received from ${order.customer.name}. ` +
-              `Products: ${productNames}. ` +
-              `Total: ₦${Number(
-                order.total,
-              ).toLocaleString()}`,
-          }),
-        ),
-      );
-
-      console.log(
-        `🔔 ADMIN NOTIFICATIONS SENT: ${admins.length}`,
-      );
-    } catch (error) {
-      console.error(
-        "❌ ADMIN NOTIFICATION ERROR:",
-        error.message,
-      );
+      return;
     }
-  };
 
- 
+    const productNames = order.items.map((item) => item.name).join(", ");
+
+    await Promise.all(
+      admins.map((admin) =>
+        notify({
+          user: admin._id,
+
+          sender: order.user,
+
+          type: "order",
+
+          orderId: order._id,
+
+          message:
+            `💰 New paid order received from ${order.customer.name}. ` +
+            `Products: ${productNames}. ` +
+            `Total: ₦${Number(order.total).toLocaleString()}`,
+        }),
+      ),
+    );
+
+    console.log(`🔔 ADMIN NOTIFICATIONS SENT: ${admins.length}`);
+  } catch (error) {
+    console.error("❌ ADMIN NOTIFICATION ERROR:", error.message);
+  }
+};
 
 // ==========================================
 // EXPORTS
@@ -1994,6 +1524,8 @@ module.exports = {
   forwardLoanDvaWebhook,
 
   forwardKycVerificationWebhook,
+
+  forwardLoanRepaymentWebhook,
 
   forwardLoanRepaymentWebhook,
 

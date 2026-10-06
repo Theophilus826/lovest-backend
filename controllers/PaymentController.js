@@ -991,7 +991,21 @@ const forwardLoanRepaymentWebhook = async (event) => {
       return false;
     }
 
-    await axios.post(
+    console.log(
+      "➡️ FORWARDING LOAN REPAYMENT WEBHOOK",
+    );
+
+    console.log(
+      "➡️ LOAN WEBHOOK URL:",
+      loanRepaymentWebhookUrl,
+    );
+
+    console.log(
+      "➡️ REPAYMENT REFERENCE:",
+      event?.data?.reference || null,
+    );
+
+    const response = await axios.post(
       loanRepaymentWebhookUrl,
       event,
       {
@@ -1004,36 +1018,86 @@ const forwardLoanRepaymentWebhook = async (event) => {
         },
 
         timeout: 15000,
+
+        // Don't let Axios hide the actual HTTP response.
+        validateStatus: () => true,
       },
     );
 
     console.log(
-      "✅ LOAN REPAYMENT WEBHOOK FORWARDED:",
-      event?.data?.reference || null,
+      "⬅️ LOAN WEBHOOK RESPONSE STATUS:",
+      response.status,
     );
 
-    return true;
+    console.log(
+      "⬅️ LOAN WEBHOOK RESPONSE DATA:",
+      response.data,
+    );
+
+    console.log(
+      "⬅️ LOAN WEBHOOK RESPONSE HEADERS:",
+      response.headers,
+    );
+
+    if (
+      response.status >= 200 &&
+      response.status < 300
+    ) {
+      console.log(
+        "✅ LOAN REPAYMENT WEBHOOK FORWARDED:",
+        event?.data?.reference || null,
+      );
+
+      return true;
+    }
+
+    console.error(
+      "❌ LOAN REPAYMENT WEBHOOK REJECTED",
+    );
+
+    return false;
   } catch (error) {
-  console.error("❌ FAILED TO FORWARD LOAN REPAYMENT WEBHOOK");
+    console.error(
+      "❌ FAILED TO FORWARD LOAN REPAYMENT WEBHOOK",
+    );
 
-  console.error("STATUS:", error.response?.status);
-  console.error("STATUS TEXT:", error.response?.statusText);
-  console.error("URL:", error.config?.url);
+    console.error(
+      "ERROR CODE:",
+      error.code || null,
+    );
 
-  console.error(
-    "RESPONSE HEADERS:",
-    error.response?.headers
-  );
+    console.error(
+      "STATUS:",
+      error.response?.status || null,
+    );
 
-  console.error(
-    "RESPONSE DATA:",
-    error.response?.data
-  );
+    console.error(
+      "STATUS TEXT:",
+      error.response?.statusText || null,
+    );
 
-  console.error("ERROR MESSAGE:", error.message);
+    console.error(
+      "URL:",
+      error.config?.url || null,
+    );
 
-  return false;
-}
+    console.error(
+      "RESPONSE HEADERS:",
+      error.response?.headers || null,
+    );
+
+    console.error(
+      "RESPONSE DATA:",
+      error.response?.data || null,
+    );
+
+    console.error(
+      "ERROR MESSAGE:",
+      error.message || null,
+    );
+
+    return false;
+  }
 };
 
 // ==========================================

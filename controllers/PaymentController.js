@@ -1014,14 +1014,26 @@ const forwardLoanRepaymentWebhook = async (event) => {
 
     return true;
   } catch (error) {
-    console.error(
-      "❌ FAILED TO FORWARD LOAN REPAYMENT WEBHOOK:",
-      error.response?.data ||
-        error.message,
-    );
+  console.error("❌ FAILED TO FORWARD LOAN REPAYMENT WEBHOOK");
 
-    return false;
-  }
+  console.error("STATUS:", error.response?.status);
+  console.error("STATUS TEXT:", error.response?.statusText);
+  console.error("URL:", error.config?.url);
+
+  console.error(
+    "RESPONSE HEADERS:",
+    error.response?.headers
+  );
+
+  console.error(
+    "RESPONSE DATA:",
+    error.response?.data
+  );
+
+  console.error("ERROR MESSAGE:", error.message);
+
+  return false;
+}
 };
 
 // ==========================================

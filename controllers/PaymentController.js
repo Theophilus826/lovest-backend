@@ -1680,6 +1680,72 @@ const paystackWebhook = async (
         return res.sendStatus(200);
       }
 
+            // ==========================================
+      // DVA PAYMENT
+      // ==========================================
+      //
+      // A payment made into a dedicated virtual
+      // account arrives as charge.success.
+      //
+      // It does NOT necessarily use REPAY-LN-
+      // as its reference.
+      //
+      // We inspect it separately before looking
+      // for a normal Order.
+      // ==========================================
+
+      const isDvaPayment =
+        payment.authorization?.channel ===
+        "dedicated_nuban";
+
+      if (isDvaPayment) {
+        console.log(
+          "🏦 DVA CHARGE SUCCESS DETECTED:",
+          reference,
+        );
+
+        console.log(
+          "🏦 DVA CHARGE SUCCESS FULL DATA:",
+          JSON.stringify(payment, null, 2),
+        );
+
+        console.log(
+          "🏦 DVA AUTHORIZATION:",
+          payment.authorization || null,
+        );
+
+        console.log(
+          "🏦 DVA CUSTOMER:",
+          payment.customer || null,
+        );
+
+        console.log(
+          "🏦 DVA METADATA:",
+          payment.metadata || null,
+        );
+
+        console.log(
+          "🏦 DVA AMOUNT:",
+          Number(payment.amount) / 100,
+        );
+
+        console.log(
+          "🏦 DVA REFERENCE:",
+          payment.reference,
+        );
+
+        // ------------------------------------------
+        // TEMPORARY STOP
+        // ------------------------------------------
+        //
+        // Do not process as an Order yet.
+        // We first need to identify how this DVA
+        // payment is linked to the loan/user.
+        // ------------------------------------------
+
+        return res.sendStatus(200);
+      }
+
       // ==========================================
       // NORMAL PRODUCT PAYMENT
       // ==========================================

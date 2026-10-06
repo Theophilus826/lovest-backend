@@ -1569,6 +1569,91 @@ const notifyAdminsAboutPaidOrder =
     }
   };
 
+  // ==========================================
+// FORWARD LOAN REPAYMENT WEBHOOK
+// PRODUCT → LOAN BACKEND
+// ==========================================
+
+const forwardLoanRepaymentWebhook = async (event) => {
+  try {
+    const loanRepaymentWebhookUrl =
+      process.env.LOAN_REPAYMENT_WEBHOOK_URL;
+
+    const loanWebhookSecret =
+      process.env.LOAN_WEBHOOK_SECRET;
+
+    console.log("=================================");
+    console.log("💰 LOAN REPAYMENT WEBHOOK FORWARD");
+    console.log("EVENT:", event?.event);
+    console.log(
+      "REFERENCE:",
+      event?.data?.reference || null,
+    );
+    console.log(
+      "AMOUNT:",
+      event?.data?.amount || null,
+    );
+    console.log(
+      "SECRET PRESENT:",
+      !!loanWebhookSecret,
+    );
+    console.log(
+      "TARGET URL:",
+      loanRepaymentWebhookUrl || "NOT CONFIGURED",
+    );
+    console.log("=================================");
+
+    if (!loanRepaymentWebhookUrl) {
+      console.error(
+        "❌ LOAN_REPAYMENT_WEBHOOK_URL IS NOT CONFIGURED",
+      );
+
+      return false;
+    }
+
+    if (!loanWebhookSecret) {
+      console.error(
+        "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
+      );
+
+      return false;
+    }
+
+    await axios.post(
+      loanRepaymentWebhookUrl,
+      event,
+      {
+        headers: {
+          "Content-Type": "application/json",
+
+          "x-loan-webhook-secret":
+            loanWebhookSecret,
+
+          "x-webhook-type":
+            "loan-repayment",
+        },
+
+        timeout: 15000,
+      },
+    );
+
+    console.log(
+      "✅ LOAN REPAYMENT WEBHOOK FORWARDED:",
+      event?.data?.reference || null,
+    );
+
+    return true;
+  } catch (error) {
+    console.error(
+      "❌ FAILED TO FORWARD LOAN REPAYMENT WEBHOOK:",
+      error.response?.data ||
+        error.message,
+    );
+
+    return false;
+  }
+};
+
 // ==========================================
 // EXPORTS
 // ==========================================
@@ -1581,6 +1666,8 @@ module.exports = {
   forwardLoanDvaWebhook,
 
   forwardKycVerificationWebhook,
+
+  forwardLoanRepaymentWebhook,
 
   updatePaymentSettings,
 

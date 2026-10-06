@@ -967,6 +967,63 @@ const forwardKycVerificationWebhook =
     }
   };
 
+const forwardLoanRepaymentWebhook = async (event) => {
+  try {
+    const loanRepaymentWebhookUrl =
+      process.env.LOAN_REPAYMENT_WEBHOOK_URL;
+
+    const loanWebhookSecret =
+      process.env.LOAN_WEBHOOK_SECRET;
+
+    if (!loanRepaymentWebhookUrl) {
+      console.error(
+        "❌ LOAN_REPAYMENT_WEBHOOK_URL IS NOT CONFIGURED",
+      );
+
+      return false;
+    }
+
+    if (!loanWebhookSecret) {
+      console.error(
+        "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
+      );
+
+      return false;
+    }
+
+    await axios.post(
+      loanRepaymentWebhookUrl,
+      event,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-loan-webhook-secret":
+            loanWebhookSecret,
+          "x-webhook-type":
+            "loan-repayment",
+        },
+
+        timeout: 15000,
+      },
+    );
+
+    console.log(
+      "✅ LOAN REPAYMENT WEBHOOK FORWARDED:",
+      event?.data?.reference || null,
+    );
+
+    return true;
+  } catch (error) {
+    console.error(
+      "❌ FAILED TO FORWARD LOAN REPAYMENT WEBHOOK:",
+      error.response?.data ||
+        error.message,
+    );
+
+    return false;
+  }
+};
+
 // ==========================================
 // PAYSTACK WEBHOOK
 // ==========================================
@@ -1057,6 +1114,10 @@ const paystackWebhook = async (
 
       return res.sendStatus(401);
     }
+
+    console.log(
+      "✅ PAYSTACK WEBHOOK SIGNATURE VERIFIED",
+    );
 
     // ==========================================
     // PARSE RAW BODY
@@ -1151,7 +1212,7 @@ const paystackWebhook = async (
 
       if (!forwarded) {
         console.error(
-          "❌ LOAN WEBHOOK FORWARDING FAILED",
+          "❌ LOAN TRANSFER WEBHOOK FORWARDING FAILED",
         );
 
         return res.sendStatus(500);
@@ -1169,9 +1230,6 @@ const paystackWebhook = async (
 
     // ==========================================
     // LOAN DVA EVENTS
-    //
-    // Paystack sends these after DVA
-    // creation/assignment.
     // ==========================================
 
     const loanDvaEvents =
@@ -1194,13 +1252,6 @@ const paystackWebhook = async (
         console.error(
           "❌ PAYSTACK DVA EVENT DATA MISSING",
         );
-
-        /*
-         * The event was valid and signed,
-         * but contains no usable data.
-         * Acknowledge it rather than retrying
-         * an unusable payload forever.
-         */
 
         return res.sendStatus(200);
       }
@@ -1246,11 +1297,6 @@ const paystackWebhook = async (
         await forwardLoanDvaWebhook(
           event,
         );
-
-      // ------------------------------------------
-      // IF FORWARDING FAILS
-      // PAYSTACK CAN RETRY
-      // ------------------------------------------
 
       if (!forwarded) {
         console.error(
@@ -1340,7 +1386,7 @@ const paystackWebhook = async (
     }
 
     // ==========================================
-    // HANDLE SUCCESSFUL PRODUCT PAYMENT
+    // HANDLE SUCCESSFUL PAYSTACK CHARGE
     // ==========================================
 
     if (
@@ -1350,6 +1396,10 @@ const paystackWebhook = async (
       const payment =
         event.data;
 
+      // ------------------------------------------
+      // CHECK PAYMENT DATA
+      // ------------------------------------------
+
       if (!payment) {
         console.error(
           "❌ PAYSTACK WEBHOOK PAYMENT DATA MISSING",
@@ -1357,6 +1407,10 @@ const paystackWebhook = async (
 
         return res.sendStatus(200);
       }
+
+      // ------------------------------------------
+      // GET PAYMENT REFERENCE
+      // ------------------------------------------
 
       const reference =
         payment.reference;
@@ -1368,6 +1422,196 @@ const paystackWebhook = async (
 
         return res.sendStatus(200);
       }
+
+      console.log(
+        "💳 CHARGE.SUCCESS REFERENCE:",
+        reference,
+      );
+
+      console.log(
+        "💰 CHARGE AMOUNT:",
+        Number(payment.amount) / 100,
+      );
+
+      console.log(
+        "💱 CHARGE CURRENCY:",
+        payment.currency ||
+          null,
+      );
+
+      console.log(
+        "📊 CHARGE STATUS:",
+        payment.status ||
+          null,
+      );
+
+      console.log(
+        "🆔 PAYSTACK TRANSACTION ID:",
+        payment.id ||
+          null,
+      );
+
+      // ==========================================
+      // LOAN REPAYMENT
+      //
+      // Example:
+      //
+      // REPAY-LN-1790436634977-5938-...
+      //
+      // IMPORTANT:
+      // This MUST happen before Order.findOne()
+      // because loan repayments are not Orders.
+      // ==========================================
+
+      if (
+        String(reference).startsWith(
+          "REPAY-LN-",
+        )
+      ) {
+        console.log(
+          "🏦 LOAN REPAYMENT CHARGE SUCCESS:",
+          reference,
+        );
+
+        // ----------------------------------------
+        // VERIFY PAYSTACK STATUS
+        // ----------------------------------------
+
+        if (
+          payment.status &&
+          payment.status !==
+            "success"
+        ) {
+          console.error(
+            "❌ LOAN REPAYMENT PAYMENT STATUS IS NOT SUCCESS:",
+            payment.status,
+          );
+
+          return res.sendStatus(200);
+        }
+
+        // ----------------------------------------
+        // VERIFY CURRENCY
+        // ----------------------------------------
+
+        if (
+          payment.currency &&
+          payment.currency !==
+            "NGN"
+        ) {
+          console.error(
+            "❌ LOAN REPAYMENT CURRENCY MISMATCH",
+          );
+
+          console.error({
+            expected: "NGN",
+            received:
+              payment.currency,
+            reference,
+          });
+
+          return res.sendStatus(200);
+        }
+
+        // ----------------------------------------
+        // VERIFY PURPOSE
+        // ----------------------------------------
+
+        const purpose =
+          payment.metadata?.purpose;
+
+        if (
+          purpose &&
+          purpose !==
+            "LOAN_REPAYMENT"
+        ) {
+          console.error(
+            "❌ INVALID LOAN REPAYMENT PURPOSE:",
+            purpose,
+          );
+
+          return res.sendStatus(200);
+        }
+
+        console.log(
+          "🎯 REPAYMENT PURPOSE:",
+          purpose ||
+            "LOAN_REPAYMENT",
+        );
+
+        // ----------------------------------------
+        // LOG METADATA
+        // ----------------------------------------
+
+        console.log(
+          "📦 LOAN REPAYMENT METADATA:",
+          {
+            mandateReference:
+              payment.metadata
+                ?.mandateReference ||
+              null,
+
+            userId:
+              payment.metadata
+                ?.userId ||
+              null,
+
+            loanOfferId:
+              payment.metadata
+                ?.loanOfferId ||
+              null,
+
+            loanApplicationId:
+              payment.metadata
+                ?.loanApplicationId ||
+              null,
+
+            purpose:
+              payment.metadata
+                ?.purpose ||
+              null,
+          },
+        );
+
+        // ----------------------------------------
+        // FORWARD TO LOAN BACKEND
+        // ----------------------------------------
+
+        const forwarded =
+          await forwardLoanRepaymentWebhook(
+            event,
+          );
+
+        if (!forwarded) {
+          console.error(
+            "❌ LOAN REPAYMENT WEBHOOK FORWARDING FAILED:",
+            reference,
+          );
+
+          /*
+           * Return 500 so Paystack can retry
+           * the webhook.
+           */
+
+          return res.sendStatus(500);
+        }
+
+        console.log(
+          "✅ LOAN REPAYMENT WEBHOOK FORWARDED:",
+          reference,
+        );
+
+        return res.sendStatus(200);
+      }
+
+      // ==========================================
+      // NORMAL PRODUCT PAYMENT
+      // ==========================================
+
+      console.log(
+        "🛒 PROCESSING NORMAL PRODUCT PAYMENT:",
+        reference,
+      );
 
       const order =
         await Order.findOne({
@@ -1384,6 +1628,10 @@ const paystackWebhook = async (
         return res.sendStatus(200);
       }
 
+      // ------------------------------------------
+      // IDEMPOTENCY
+      // ------------------------------------------
+
       if (
         order.paymentStatus ===
         "paid"
@@ -1395,6 +1643,10 @@ const paystackWebhook = async (
 
         return res.sendStatus(200);
       }
+
+      // ------------------------------------------
+      // VERIFY REFERENCE
+      // ------------------------------------------
 
       if (
         payment.reference !==
@@ -1414,6 +1666,10 @@ const paystackWebhook = async (
 
         return res.sendStatus(200);
       }
+
+      // ------------------------------------------
+      // VERIFY AMOUNT
+      // ------------------------------------------
 
       const expectedAmount =
         Math.round(
@@ -1442,6 +1698,10 @@ const paystackWebhook = async (
         return res.sendStatus(200);
       }
 
+      // ------------------------------------------
+      // VERIFY CURRENCY
+      // ------------------------------------------
+
       if (
         payment.currency &&
         payment.currency !==
@@ -1452,7 +1712,8 @@ const paystackWebhook = async (
         );
 
         console.error({
-          expected: "NGN",
+          expected:
+            "NGN",
 
           received:
             payment.currency,
@@ -1462,6 +1723,10 @@ const paystackWebhook = async (
 
         return res.sendStatus(200);
       }
+
+      // ------------------------------------------
+      // UPDATE ORDER
+      // ------------------------------------------
 
       order.paymentStatus =
         "paid";
@@ -1486,6 +1751,10 @@ const paystackWebhook = async (
         "confirmed";
 
       await order.save();
+
+      // ------------------------------------------
+      // ADMIN NOTIFICATION
+      // ------------------------------------------
 
       await sendAdminPaymentNotificationOnce(
         order,
@@ -1569,90 +1838,7 @@ const notifyAdminsAboutPaidOrder =
     }
   };
 
-  // ==========================================
-// FORWARD LOAN REPAYMENT WEBHOOK
-// PRODUCT → LOAN BACKEND
-// ==========================================
-
-const forwardLoanRepaymentWebhook = async (event) => {
-  try {
-    const loanRepaymentWebhookUrl =
-      process.env.LOAN_REPAYMENT_WEBHOOK_URL;
-
-    const loanWebhookSecret =
-      process.env.LOAN_WEBHOOK_SECRET;
-
-    console.log("=================================");
-    console.log("💰 LOAN REPAYMENT WEBHOOK FORWARD");
-    console.log("EVENT:", event?.event);
-    console.log(
-      "REFERENCE:",
-      event?.data?.reference || null,
-    );
-    console.log(
-      "AMOUNT:",
-      event?.data?.amount || null,
-    );
-    console.log(
-      "SECRET PRESENT:",
-      !!loanWebhookSecret,
-    );
-    console.log(
-      "TARGET URL:",
-      loanRepaymentWebhookUrl || "NOT CONFIGURED",
-    );
-    console.log("=================================");
-
-    if (!loanRepaymentWebhookUrl) {
-      console.error(
-        "❌ LOAN_REPAYMENT_WEBHOOK_URL IS NOT CONFIGURED",
-      );
-
-      return false;
-    }
-
-    if (!loanWebhookSecret) {
-      console.error(
-        "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED",
-      );
-
-      return false;
-    }
-
-    await axios.post(
-      loanRepaymentWebhookUrl,
-      event,
-      {
-        headers: {
-          "Content-Type": "application/json",
-
-          "x-loan-webhook-secret":
-            loanWebhookSecret,
-
-          "x-webhook-type":
-            "loan-repayment",
-        },
-
-        timeout: 15000,
-      },
-    );
-
-    console.log(
-      "✅ LOAN REPAYMENT WEBHOOK FORWARDED:",
-      event?.data?.reference || null,
-    );
-
-    return true;
-  } catch (error) {
-    console.error(
-      "❌ FAILED TO FORWARD LOAN REPAYMENT WEBHOOK:",
-      error.response?.data ||
-        error.message,
-    );
-
-    return false;
-  }
-};
+ 
 
 // ==========================================
 // EXPORTS

@@ -887,97 +887,158 @@ const forwardLoanRepaymentWebhook = async (event) => {
   }
 };
 
+
+// ==========================================
+// FORWARD LOAN MANDATE WEBHOOK
+// PRODUCT BACKEND → LOAN BACKEND
+// ==========================================
+
+const forwardLoanMandateWebhook = async (event) => {
+  try {
+    const loanMandateWebhookUrl =
+      process.env.LOAN_MANDATE_WEBHOOK_URL;
+
+    const loanWebhookSecret =
+      process.env.LOAN_WEBHOOK_SECRET;
+
+    if (!loanMandateWebhookUrl) {
+      console.error(
+        "❌ LOAN_MANDATE_WEBHOOK_URL IS NOT CONFIGURED"
+      );
+      return false;
+    }
+
+    if (!loanWebhookSecret) {
+      console.error(
+        "❌ LOAN_WEBHOOK_SECRET IS NOT CONFIGURED"
+      );
+      return false;
+    }
+
+    const response = await axios.post(
+      loanMandateWebhookUrl,
+      event,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-loan-webhook-secret": loanWebhookSecret,
+          "x-webhook-type": "loan-mandate",
+        },
+        timeout: 15000,
+        validateStatus: () => true,
+      }
+    );
+
+    console.log(
+      "🏦 MANDATE WEBHOOK RESPONSE:",
+      response.status,
+      response.data
+    );
+
+    if (response.status >= 200 && response.status < 300) {
+      console.log(
+        "✅ LOAN MANDATE WEBHOOK FORWARDED:",
+        event?.data?.reference || null
+      );
+      return true;
+    }
+
+    console.error("❌ LOAN BACKEND REJECTED MANDATE WEBHOOK");
+    return false;
+  } catch (error) {
+    console.error(
+      "❌ FAILED TO FORWARD LOAN MANDATE:",
+      error.response?.data || error.message
+    );
+    return false;
+  }
+};
+
+
 // ==========================================
 // PAYSTACK WEBHOOK
 // ==========================================
 
+
 const paystackWebhook = async (req, res) => {
-  console.log("🔥🔥🔥 PAYSTACK WEBHOOK CONTROLLER HIT 🔥🔥🔥");
-
+  console.log("🔥 PAYSTACK WEBHOOK CONTROLLER HIT");
   console.log("METHOD:", req.method);
-
   console.log("URL:", req.originalUrl);
-
   console.log("BODY IS BUFFER:", Buffer.isBuffer(req.body));
 
   try {
     // ==========================================
-    // CHECK PAYSTACK SECRET KEY
-    // ==========================================
-
-    if (!process.env.PAYSTACK_SECRET_KEY) {
-      console.error("❌ PAYSTACK_SECRET_KEY IS MISSING");
-
-      return res.sendStatus(500);
-    }
-
-    // ==========================================
-    // CHECK RAW REQUEST BODY
-    // ==========================================
-
-    if (!Buffer.isBuffer(req.body)) {
-      console.error("❌ PAYSTACK WEBHOOK BODY IS NOT RAW BUFFER");
-
-      return res.sendStatus(400);
-    }
-
-    // ==========================================
-    // GET PAYSTACK SIGNATURE
-    // ==========================================
-
-    const signature = req.headers["x-paystack-signature"];
-
-    if (!signature) {
-      console.error("❌ PAYSTACK WEBHOOK SIGNATURE MISSING");
-
-      return res.sendStatus(401);
-    }
-
-    // ==========================================
     // VERIFY PAYSTACK SIGNATURE
     // ==========================================
 
-    const hash = crypto
-      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
-      .update(req.body)
-      .digest("hex");
+    const secret = process.env.PAYSTACK_SECRET_KEY;
 
-    if (hash !== signature) {
-      console.error("❌ INVALID PAYSTACK WEBHOOK SIGNATURE");
+    if (!secret) {
+      console.error("❌ PAYSTACK_SECRET_KEY IS MISSING");
+      return res.sendStatus(500);
+    }
 
+    if (!Buffer.isBuffer(req.body)) {
+      console.error("❌ WEBHOOK BODY MUST BE RAW BUFFER");
+      return res.sendStatus(400);
+    }
+
+    const signature = req.headers["x-paystack-signature"];
+
+    if (
+      typeof signature !== "string" ||
+      !/^[a-f0-9]{128}$/i.test(signature)
+    ) {
+      console.error("❌ INVALID OR MISSING PAYSTACK SIGNATURE");
       return res.sendStatus(401);
     }
 
-    console.log("✅ PAYSTACK WEBHOOK SIGNATURE VERIFIED");
+    const expectedSignature = crypto
+      .createHmac("sha512", secret)
+      .update(req.body)
+      .digest();
+
+    const receivedSignature = Buffer.from(signature, "hex");
+
+    if (
+      receivedSignature.length !== expectedSignature.length ||
+      !crypto.timingSafeEqual(
+        expectedSignature,
+        receivedSignature
+      )
+    ) {
+      console.error("❌ PAYSTACK SIGNATURE VERIFICATION FAILED");
+      return res.sendStatus(401);
+    }
+
+    console.log("✅ PAYSTACK SIGNATURE VERIFIED");
 
     // ==========================================
-    // PARSE RAW BODY
+    // PARSE EVENT
     // ==========================================
 
     let event;
 
     try {
       event = JSON.parse(req.body.toString("utf8"));
-    } catch (parseError) {
-      console.error("❌ INVALID PAYSTACK WEBHOOK JSON:", parseError.message);
-
+    } catch (error) {
+      console.error("❌ INVALID WEBHOOK JSON:", error.message);
       return res.sendStatus(400);
     }
 
-    // ==========================================
-    // VALIDATE EVENT
-    // ==========================================
-
-    if (!event || typeof event !== "object") {
-      console.error("❌ INVALID PAYSTACK WEBHOOK EVENT");
-
+    if (
+      !event ||
+      typeof event !== "object" ||
+      typeof event.event !== "string"
+    ) {
+      console.error("❌ INVALID WEBHOOK EVENT");
       return res.sendStatus(400);
     }
 
-    console.log("📩 PAYSTACK WEBHOOK:", event.event);
+    console.log("📩 PAYSTACK EVENT:", event.event);
 
     // ==========================================
-    // LOAN TRANSFER EVENTS
+    // LOAN TRANSFERS
     // ==========================================
 
     const loanTransferEvents = new Set([
@@ -987,39 +1048,18 @@ const paystackWebhook = async (req, res) => {
     ]);
 
     if (loanTransferEvents.has(event.event)) {
-      console.log("🏦 LOAN TRANSFER EVENT RECEIVED:", event.event);
-
       if (!event.data) {
-        console.error("❌ PAYSTACK TRANSFER EVENT DATA MISSING");
-
-        return res.sendStatus(200);
+        console.error("❌ TRANSFER DATA MISSING");
+        return res.sendStatus(400);
       }
-
-      console.log("REFERENCE:", event.data.reference || null);
-
-      console.log("TRANSFER CODE:", event.data.transfer_code || null);
-
-      console.log("TRANSFER ID:", event.data.id || null);
 
       const forwarded = await forwardLoanTransferWebhook(event);
 
-      if (!forwarded) {
-        console.error("❌ LOAN TRANSFER WEBHOOK FORWARDING FAILED");
-
-        return res.sendStatus(500);
-      }
-
-      console.log(
-        "✅ LOAN TRANSFER EVENT PROCESSED:",
-        event.event,
-        event.data.reference || null,
-      );
-
-      return res.sendStatus(200);
+      return res.sendStatus(forwarded ? 200 : 500);
     }
 
     // ==========================================
-    // LOAN DVA EVENTS
+    // LOAN DVA ASSIGNMENT EVENTS
     // ==========================================
 
     const loanDvaEvents = new Set([
@@ -1028,446 +1068,266 @@ const paystackWebhook = async (req, res) => {
     ]);
 
     if (loanDvaEvents.has(event.event)) {
-      console.log("🏦 LOAN DVA EVENT RECEIVED:", event.event);
-
       if (!event.data) {
-        console.error("❌ PAYSTACK DVA EVENT DATA MISSING");
-
-        return res.sendStatus(200);
+        console.error("❌ DVA EVENT DATA MISSING");
+        return res.sendStatus(400);
       }
-
-      // ------------------------------------------
-      // LOG DVA IDENTIFIERS
-      // ------------------------------------------
-
-      console.log(
-        "CUSTOMER CODE:",
-        event.data.customer_code || event.data.customer?.customer_code || null,
-      );
-
-      console.log(
-        "ACCOUNT NUMBER:",
-        event.data.account_number || event.data.account?.account_number || null,
-      );
-
-      console.log(
-        "ACCOUNT ID:",
-        event.data.id || event.data.account?.id || null,
-      );
-
-      console.log(
-        "ERROR:",
-        event.data.error || event.data.message || event.data.reason || null,
-      );
-
-      // ------------------------------------------
-      // FORWARD TO LOAN BACKEND
-      // ------------------------------------------
 
       const forwarded = await forwardLoanDvaWebhook(event);
 
-      if (!forwarded) {
-        console.error("❌ LOAN DVA WEBHOOK FORWARDING FAILED");
-
-        return res.sendStatus(500);
-      }
-
-      console.log("✅ LOAN DVA EVENT PROCESSED:", event.event);
-
-      return res.sendStatus(200);
+      return res.sendStatus(forwarded ? 200 : 500);
     }
 
     // ==========================================
-    // CUSTOMER IDENTIFICATION EVENTS
+    // CUSTOMER IDENTIFICATION / KYC
     // ==========================================
 
-    const customerIdentificationEvents = new Set([
+    const kycEvents = new Set([
       "customeridentification.success",
       "customeridentification.failed",
     ]);
 
-    if (customerIdentificationEvents.has(event.event)) {
-      console.log("🪪 CUSTOMER IDENTIFICATION EVENT RECEIVED:", event.event);
-
+    if (kycEvents.has(event.event)) {
       if (!event.data) {
-        console.error("❌ PAYSTACK CUSTOMER IDENTIFICATION DATA MISSING");
-
-        return res.sendStatus(200);
+        console.error("❌ KYC EVENT DATA MISSING");
+        return res.sendStatus(400);
       }
-
-      console.log(
-        "CUSTOMER CODE:",
-        event.data.customer_code || event.data.customer?.customer_code || null,
-      );
-
-      console.log(
-        "REFERENCE:",
-        event.data.reference ||
-          event.data.customer_identification_reference ||
-          null,
-      );
-
-      console.log(
-        "IDENTIFICATION STATUS:",
-        event.data.status || event.data.verification_status || null,
-      );
 
       const forwarded = await forwardKycVerificationWebhook(event);
 
-      if (!forwarded) {
-        console.error("❌ KYC WEBHOOK FORWARDING FAILED");
+      return res.sendStatus(forwarded ? 200 : 500);
+    }
 
-        return res.sendStatus(500);
-      }
+    // ==========================================
+    // ONLY CHARGE.SUCCESS NEEDS PAYMENT ROUTING
+    // ==========================================
 
-      console.log("✅ CUSTOMER IDENTIFICATION EVENT PROCESSED:", event.event);
+    if (event.event !== "charge.success") {
+      console.log("ℹ️ EVENT DOES NOT NEED CHARGE PROCESSING");
+      return res.sendStatus(200);
+    }
 
+    const payment = event.data;
+
+    if (!payment || typeof payment !== "object") {
+      console.error("❌ PAYMENT DATA MISSING");
+      return res.sendStatus(400);
+    }
+
+    const reference = payment.reference;
+
+    if (!reference) {
+      console.error("❌ PAYMENT REFERENCE MISSING");
+      return res.sendStatus(400);
+    }
+
+    console.log("💳 REFERENCE:", reference);
+    console.log("💰 AMOUNT:", Number(payment.amount) / 100);
+    console.log("💱 CURRENCY:", payment.currency);
+    console.log("📊 STATUS:", payment.status);
+    console.log("🆔 TRANSACTION ID:", payment.id);
+
+    // ==========================================
+    // COMMON CHARGE VALIDATION
+    // ==========================================
+
+    if (payment.status !== "success") {
+      console.error("❌ CHARGE STATUS IS NOT SUCCESS");
+      return res.sendStatus(200);
+    }
+
+    if (payment.currency !== "NGN") {
+      console.error("❌ UNSUPPORTED PAYMENT CURRENCY");
       return res.sendStatus(200);
     }
 
     // ==========================================
-    // HANDLE SUCCESSFUL PAYSTACK CHARGE
+    // LOAN REPAYMENT
+    // REPAY-LN-...
     // ==========================================
 
-    if (event.event === "charge.success") {
-      const payment = event.data;
+    if (String(reference).startsWith("REPAY-LN-")) {
+      console.log("🏦 LOAN REPAYMENT DETECTED:", reference);
 
-      // ------------------------------------------
-      // CHECK PAYMENT DATA
-      // ------------------------------------------
+      const purpose = payment.metadata?.purpose;
 
-      if (!payment) {
-        console.error("❌ PAYSTACK WEBHOOK PAYMENT DATA MISSING");
-
+      if (purpose && purpose !== "LOAN_REPAYMENT") {
+        console.error("❌ INVALID REPAYMENT PURPOSE:", purpose);
         return res.sendStatus(200);
       }
 
-      // ------------------------------------------
-      // GET PAYMENT REFERENCE
-      // ------------------------------------------
-
-      const reference = payment.reference;
-
-      if (!reference) {
-        console.error("❌ PAYSTACK WEBHOOK REFERENCE MISSING");
-
-        return res.sendStatus(200);
-      }
-
-      console.log("💳 CHARGE.SUCCESS REFERENCE:", reference);
-
-      console.log("💰 CHARGE AMOUNT:", Number(payment.amount) / 100);
-
-      console.log("💱 CHARGE CURRENCY:", payment.currency || null);
-
-      console.log("📊 CHARGE STATUS:", payment.status || null);
-
-      console.log("🆔 PAYSTACK TRANSACTION ID:", payment.id || null);
-
-      // ==========================================
-      // LOAN REPAYMENT
-      //
-      // Example:
-      //
-      // REPAY-LN-1790436634977-5938-...
-      //
-      // IMPORTANT:
-      // This MUST happen before Order.findOne()
-      // because loan repayments are not Orders.
-      // ==========================================
-
-      if (String(reference).startsWith("REPAY-LN-")) {
-        console.log("🏦 LOAN REPAYMENT CHARGE SUCCESS:", reference);
-
-        // ----------------------------------------
-        // VERIFY PAYSTACK STATUS
-        // ----------------------------------------
-
-        if (payment.status && payment.status !== "success") {
-          console.error(
-            "❌ LOAN REPAYMENT PAYMENT STATUS IS NOT SUCCESS:",
-            payment.status,
-          );
-
-          return res.sendStatus(200);
-        }
-
-        // ----------------------------------------
-        // VERIFY CURRENCY
-        // ----------------------------------------
-
-        if (payment.currency && payment.currency !== "NGN") {
-          console.error("❌ LOAN REPAYMENT CURRENCY MISMATCH");
-
-          console.error({
-            expected: "NGN",
-            received: payment.currency,
-            reference,
-          });
-
-          return res.sendStatus(200);
-        }
-
-        // ----------------------------------------
-        // VERIFY PURPOSE
-        // ----------------------------------------
-
-        const purpose = payment.metadata?.purpose;
-
-        if (purpose && purpose !== "LOAN_REPAYMENT") {
-          console.error("❌ INVALID LOAN REPAYMENT PURPOSE:", purpose);
-
-          return res.sendStatus(200);
-        }
-
-        console.log("🎯 REPAYMENT PURPOSE:", purpose || "LOAN_REPAYMENT");
-
-        // ----------------------------------------
-        // LOG METADATA
-        // ----------------------------------------
-
-        console.log("📦 LOAN REPAYMENT METADATA:", {
-          mandateReference: payment.metadata?.mandateReference || null,
-
-          userId: payment.metadata?.userId || null,
-
-          loanOfferId: payment.metadata?.loanOfferId || null,
-
-          loanApplicationId: payment.metadata?.loanApplicationId || null,
-
-          purpose: payment.metadata?.purpose || null,
-        });
-
-        // ----------------------------------------
-        // FORWARD TO LOAN BACKEND
-        // ----------------------------------------
-
-        const forwarded = await forwardLoanRepaymentWebhook(event);
-
-        if (!forwarded) {
-          console.error(
-            "❌ LOAN REPAYMENT WEBHOOK FORWARDING FAILED:",
-            reference,
-          );
-
-          /*
-           * Return 500 so Paystack can retry
-           * the webhook.
-           */
-
-          return res.sendStatus(500);
-        }
-
-        console.log("✅ LOAN REPAYMENT WEBHOOK FORWARDED:", reference);
-
-        return res.sendStatus(200);
-      }
-
-      // ==========================================
-      // DVA PAYMENT
-      // ==========================================
-      //
-      // A payment made into a dedicated virtual
-      // account arrives as charge.success.
-      //
-      // It does NOT necessarily use REPAY-LN-
-      // as its reference.
-      //
-      // We inspect it separately before looking
-      // for a normal Order.
-      // ==========================================
-
-      const isDvaPayment =
-        payment.authorization?.channel === "dedicated_nuban" ||
-        payment.channel === "dedicated_nuban";
-
-      if (isDvaPayment) {
-        console.log("🏦 DVA CHARGE SUCCESS DETECTED:", reference);
-
-        console.log("🏦 DVA AMOUNT:", Number(payment.amount) / 100);
-
-        console.log(
-          "🏦 DVA ACCOUNT NUMBER:",
-          payment.authorization?.receiver_bank_account_number || null,
-        );
-
-        console.log(
-          "🏦 DVA CUSTOMER CODE:",
-          payment.customer?.customer_code || null,
-        );
-
-        console.log("🏦 DVA PAYSTACK TRANSACTION ID:", payment.id || null);
-
-        // ------------------------------------------
-        // VERIFY STATUS
-        // ------------------------------------------
-
-        if (payment.status && payment.status !== "success") {
-          console.error(
-            "❌ DVA PAYMENT STATUS IS NOT SUCCESS:",
-            payment.status,
-          );
-
-          return res.sendStatus(200);
-        }
-
-        // ------------------------------------------
-        // VERIFY CURRENCY
-        // ------------------------------------------
-
-        if (payment.currency && payment.currency !== "NGN") {
-          console.error(
-            "❌ DVA PAYMENT CURRENCY IS NOT NGN:",
-            payment.currency,
-          );
-
-          return res.sendStatus(200);
-        }
-
-        // ------------------------------------------
-        // FORWARD TO LOAN BACKEND
-        // ------------------------------------------
-
-        const forwarded = await forwardLoanDvaPaymentWebhook(event);
-
-        if (!forwarded) {
-          console.error("❌ DVA PAYMENT FORWARDING TO LOAN FAILED:", reference);
-
-          /*
-           * IMPORTANT:
-           * Return 500 so Paystack can retry.
-           */
-          return res.sendStatus(500);
-        }
-
-        console.log("✅ DVA PAYMENT FORWARDED TO LOAN:", reference);
-
-        return res.sendStatus(200);
-      }
-
-      // ==========================================
-      // NORMAL PRODUCT PAYMENT
-      // ==========================================
-
-      console.log("🛒 PROCESSING NORMAL PRODUCT PAYMENT:", reference);
-
-      const order = await Order.findOne({
-        paymentReference: reference,
+      console.log("📦 REPAYMENT METADATA:", {
+        mandateReference:
+          payment.metadata?.mandateReference || null,
+        userId: payment.metadata?.userId || null,
+        loanOfferId: payment.metadata?.loanOfferId || null,
+        loanApplicationId:
+          payment.metadata?.loanApplicationId || null,
+        purpose: purpose || null,
       });
 
-      if (!order) {
-        console.log("⚠️ ORDER NOT FOUND:", reference);
+      const forwarded = await forwardLoanRepaymentWebhook(event);
 
-        return res.sendStatus(200);
+      if (!forwarded) {
+        console.error("❌ LOAN REPAYMENT FORWARD FAILED:", reference);
+        return res.sendStatus(500);
       }
 
-      // ------------------------------------------
-      // IDEMPOTENCY
-      // ------------------------------------------
-
-      if (order.paymentStatus === "paid") {
-        console.log("ℹ️ PAYMENT ALREADY PROCESSED:", reference);
-
-        return res.sendStatus(200);
-      }
-
-      // ------------------------------------------
-      // VERIFY REFERENCE
-      // ------------------------------------------
-
-      if (payment.reference !== order.paymentReference) {
-        console.error("❌ WEBHOOK PAYMENT REFERENCE MISMATCH");
-
-        console.error({
-          expected: order.paymentReference,
-
-          received: payment.reference,
-        });
-
-        return res.sendStatus(200);
-      }
-
-      // ------------------------------------------
-      // VERIFY AMOUNT
-      // ------------------------------------------
-
-      const expectedAmount = Math.round(Number(order.total) * 100);
-
-      if (Number(payment.amount) !== expectedAmount) {
-        console.error("❌ WEBHOOK PAYMENT AMOUNT MISMATCH");
-
-        console.error({
-          expected: expectedAmount,
-
-          received: payment.amount,
-
-          reference,
-        });
-
-        return res.sendStatus(200);
-      }
-
-      // ------------------------------------------
-      // VERIFY CURRENCY
-      // ------------------------------------------
-
-      if (payment.currency && payment.currency !== "NGN") {
-        console.error("❌ WEBHOOK PAYMENT CURRENCY MISMATCH");
-
-        console.error({
-          expected: "NGN",
-
-          received: payment.currency,
-
-          reference,
-        });
-
-        return res.sendStatus(200);
-      }
-
-      // ------------------------------------------
-      // UPDATE ORDER
-      // ------------------------------------------
-
-      order.paymentStatus = "paid";
-
-      order.paymentMethod = "online";
-
-      order.paymentProvider = "paystack";
-
-      order.paymentReference = payment.reference;
-
-      order.paidAmount = Number(payment.amount) / 100;
-
-      order.paidAt = new Date();
-
-      order.status = "confirmed";
-
-      await order.save();
-
-      // ------------------------------------------
-      // ADMIN NOTIFICATION
-      // ------------------------------------------
-
-      await sendAdminPaymentNotificationOnce(order);
-
-      console.log(`✅ ORDER ${order._id} PAYMENT CONFIRMED`);
+      console.log("✅ LOAN REPAYMENT FORWARDED:", reference);
+      return res.sendStatus(200);
     }
 
     // ==========================================
-    // OTHER PAYSTACK EVENTS
+    // LOAN REPAYMENT MANDATE
+    // MND-...
+    //
+    // MUST RUN BEFORE ORDER LOOKUP.
     // ==========================================
+
+    if (String(reference).startsWith("MND-")) {
+      console.log("🏦 LOAN MANDATE CHARGE DETECTED:", reference);
+
+      console.log("🆔 TRANSACTION ID:", payment.id || null);
+
+      console.log(
+        "💰 MANDATE CHARGE AMOUNT:",
+        Number(payment.amount) / 100
+      );
+
+      console.log(
+        "📦 MANDATE METADATA:",
+        payment.metadata || null
+      );
+
+      const forwarded = await forwardLoanMandateWebhook(event);
+
+      if (!forwarded) {
+        console.error(
+          "❌ LOAN MANDATE FORWARD FAILED:",
+          reference
+        );
+
+        // Paystack can retry when it receives a non-2xx response.
+        return res.sendStatus(500);
+      }
+
+      console.log("✅ LOAN MANDATE FORWARDED:", reference);
+      return res.sendStatus(200);
+    }
+
+    // ==========================================
+    // DVA REPAYMENT
+    // ==========================================
+
+    const isDvaPayment =
+      payment.authorization?.channel === "dedicated_nuban" ||
+      payment.channel === "dedicated_nuban";
+
+    if (isDvaPayment) {
+      console.log("🏦 DVA PAYMENT DETECTED:", reference);
+
+      console.log(
+        "🏦 DVA ACCOUNT:",
+        payment.authorization?.receiver_bank_account_number || null
+      );
+
+      const forwarded = await forwardLoanDvaPaymentWebhook(event);
+
+      if (!forwarded) {
+        console.error("❌ DVA FORWARD FAILED:", reference);
+        return res.sendStatus(500);
+      }
+
+      console.log("✅ DVA PAYMENT FORWARDED:", reference);
+      return res.sendStatus(200);
+    }
+
+    // ==========================================
+    // NORMAL PRODUCT PAYMENT
+    // ==========================================
+
+    console.log("🛒 PROCESSING PRODUCT PAYMENT:", reference);
+
+    const order = await Order.findOne({
+      paymentReference: reference,
+    });
+
+    if (!order) {
+      console.log("⚠️ ORDER NOT FOUND:", reference);
+
+      // Do not classify unknown references as successful orders.
+      // This may be an unrelated payment; investigate its origin.
+      return res.sendStatus(200);
+    }
+
+    // ------------------------------------------
+    // IDEMPOTENCY
+    // ------------------------------------------
+
+    if (order.paymentStatus === "paid") {
+      console.log("ℹ️ ORDER PAYMENT ALREADY PROCESSED:", reference);
+      return res.sendStatus(200);
+    }
+
+    // ------------------------------------------
+    // VERIFY REFERENCE
+    // ------------------------------------------
+
+    if (payment.reference !== order.paymentReference) {
+      console.error("❌ PAYMENT REFERENCE MISMATCH");
+      return res.sendStatus(400);
+    }
+
+    // ------------------------------------------
+    // VERIFY AMOUNT
+    // ------------------------------------------
+
+    const expectedAmount = Math.round(
+      Number(order.total) * 100
+    );
+
+    if (
+      !Number.isFinite(expectedAmount) ||
+      Number(payment.amount) !== expectedAmount
+    ) {
+      console.error("❌ PAYMENT AMOUNT MISMATCH", {
+        expected: expectedAmount,
+        received: payment.amount,
+        reference,
+      });
+
+      return res.sendStatus(400);
+    }
+
+    // ------------------------------------------
+    // UPDATE ORDER
+    // ------------------------------------------
+
+    order.paymentStatus = "paid";
+    order.paymentMethod = "online";
+    order.paymentProvider = "paystack";
+    order.paymentReference = payment.reference;
+    order.paidAmount = Number(payment.amount) / 100;
+    order.paidAt = new Date();
+    order.status = "confirmed";
+
+    await order.save();
+
+    await sendAdminPaymentNotificationOnce(order);
+
+    console.log("✅ PRODUCT ORDER PAYMENT CONFIRMED:", order._id);
 
     return res.sendStatus(200);
   } catch (error) {
     console.error(
       "❌ PAYSTACK WEBHOOK ERROR:",
-      error.response?.data || error.message,
+      error.response?.data || error.message
     );
 
     return res.sendStatus(500);
   }
 };
+
 
 // ==========================================
 // NOTIFY ADMINS ABOUT PAID ORDER
@@ -1527,7 +1387,7 @@ module.exports = {
 
   forwardLoanRepaymentWebhook,
 
-  forwardLoanRepaymentWebhook,
+  forwardLoanMandateWebhook,
 
   updatePaymentSettings,
 
